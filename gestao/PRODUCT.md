@@ -21,7 +21,7 @@ Os estados editoriais são `rascunho`, `em-revisao`, `pronto` e `publicado`. Os 
 
 O serviço `gestao/src/services/catalogService.js` cria uma cópia do catálogo da vitrine, associa os estados de exemplo de `gestao/src/data/editorialStatus.js` e entrega os registros à store da gestão. Os totais e a fila usam esses mesmos registros; não são indicadores de vendas, visitas ou desempenho.
 
-As edições vivem na memória e são descartadas ao recarregar ou sair. Não há API, POST, banco de dados ou publicação na vitrine. O sinal de sessão em `sessionStorage` não verifica identidade e não protege dados. A preferência de tema pode permanecer salva no navegador, independentemente dos cadastros temporários.
+As edições são persistidas localmente no IndexedDB deste navegador e continuam disponíveis após recarregar. Não há API, POST, banco de dados remoto ou publicação na vitrine. O sinal de sessão em `sessionStorage` não verifica identidade e não protege dados. A preferência de tema e os cadastros locais podem permanecer salvos no navegador.
 
 O escopo atual não inclui usuários, permissões, relatórios, gráficos, uploads ou exclusão de registros. Autenticação e persistência reais exigem um projeto próprio de servidor, contratos, validação e autorização antes de usar dados reais.
 

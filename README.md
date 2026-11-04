@@ -39,6 +39,6 @@ http://localhost:4175/gestao/login. A estrutura e os comandos estão em
 
 Comece por `src/main.js`, `src/router/index.js` e `src/pages/HomePage.vue`. Os registros editáveis ficam em `src/data/catalog.js`.
 
-Catálogo, expositores, preços e contatos são demonstrativos. Fotos são ilustrativas. Contatos fictícios estão bloqueados; não há pagamento, login ou painel administrativo. Favoritos e preferências ficam apenas no navegador. O mapa externo só carrega quando solicitado.
+Catálogo, expositores, preços e contatos são demonstrativos. Fotos são ilustrativas. Contatos fictícios estão bloqueados; não há pagamento, login real ou publicação administrativa. A gestão demonstrativa fica em `gestao/`, sem backend. Favoritos, preferências e alterações da gestão ficam apenas no navegador. O mapa externo só carrega quando solicitado.
 
 Para hospedar, sirva `dist/` com fallback para `index.html`: o Vue Router precisa dele ao abrir diretamente uma rota como `/boxes/barro-da-serra`.

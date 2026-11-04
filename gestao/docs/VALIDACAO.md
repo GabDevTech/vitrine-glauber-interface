@@ -35,4 +35,4 @@ Windows; a revisão de código e imagens foi feita separadamente.
 
 Esta entrega não implementa autenticação, persistência em servidor ou publicação real.
 O marcador da sessão organiza a navegação e não protege dados. Os registros da gestão
-são cópias em memória dos dados demonstrativos.
+são cópias dos dados demonstrativos persistidas apenas no IndexedDB local de cada navegador.

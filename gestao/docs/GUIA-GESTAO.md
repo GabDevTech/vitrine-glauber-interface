@@ -47,8 +47,8 @@ O [guia de Vue da vitrine](../../docs/GUIA-VUE.md) traz exemplos dos mesmos conc
 | Ação              | Responsabilidade atual                              |
 | ----------------- | --------------------------------------------------- |
 | `load()`          | Carregar o catálogo inicial pelo serviço            |
-| `save(input)`     | Validar e criar ou atualizar um registro na memória |
-| `publish(record)` | Mudar um registro pronto para publicado na memória  |
+| `save(input)`     | Validar e criar ou atualizar um registro no IndexedDB local |
+| `publish(record)` | Mudar um registro pronto para publicado no IndexedDB local  |
 | `clear()`         | Limpar os dados ao sair                             |
 
 `gestao/src/utils/records.js` reúne funções sem interface: filtrar, validar, gerar um slug único e calcular totais. Slug é o nome simplificado usado como identificador legível, como `cesto-artesanal`.
@@ -98,11 +98,11 @@ A marca própria da gestão está em `ManagementBrand.vue`. O símbolo é compos
 
 Na raiz, rode `npm run build:gestao`, `npm run test:gestao:unit` e `npm run test:gestao:e2e` conforme a mudança. Os testes de interface usam `playwright.gestao.config.js`; os testes da gestão ficam em `gestao/tests/`. Rode `npm run format:check` para conferir o formato. `npm run format` formata todo o escopo configurado do repositório, então revise o diff antes de incluir alterações fora da gestão.
 
-Na interface, confira entrada e saída, navegação, busca sem resultados, edição com erro e com sucesso, tema e uma largura de celular. Após recarregar, a edição temporária deve desaparecer e a vitrine pública deve continuar intacta.
+Na interface, confira entrada e saída, navegação, busca sem resultados, edição com erro e com sucesso, tema e uma largura de celular. Após recarregar, os cadastros salvos localmente devem continuar disponíveis e a vitrine pública deve permanecer intacta.
 
 ## 7. Trocar o serviço no futuro
 
-O ponto inicial para uma integração é `gestao/src/services/catalogService.js`, que hoje entrega `{ records, categories }` sem requisições. Um serviço real pode buscar esses dados, mas trocar a leitura não torna `save()` e `publish()` persistentes: essas ações ainda alteram somente a memória.
+O ponto inicial para uma integração é `gestao/src/services/catalogService.js`, que hoje entrega `{ records, categories }` sem requisições. As ações `save()` e `publish()` gravam no IndexedDB local por meio de `gestao/src/services/catalogStorage.js`; substituir esse armazenamento por API será necessário para compartilhar dados entre usuários e publicar na vitrine.
 
 Antes de integrar, defina o contrato do servidor, os identificadores, os erros esperados e as regras de acesso. Implemente autenticação e autorização no servidor; substitua o marcador demonstrativo por um fluxo adequado. Só depois adapte leitura, gravação e publicação, incluindo estados de espera e falha e testes dos contratos. Validação no navegador ajuda a pessoa a preencher; o servidor também precisa validar e autorizar cada operação.
 

@@ -11,7 +11,7 @@ npm run dev:gestao
 
 Abra <http://localhost:4175/gestao/login> e preencha qualquer login e senha. Não há conta ou autenticação real. O marcador em `sessionStorage` serve apenas para organizar a navegação.
 
-Os cadastros são cópias do catálogo inicial e ficam somente na memória da aplicação. Recarregar a página ou sair descarta as alterações. “Salvar” e “Publicar” não enviam dados a servidor nem modificam a vitrine pública.
+Os cadastros são cópias do catálogo inicial e ficam salvos no IndexedDB deste navegador. Recarregar a página preserva as alterações; sair encerra apenas a sessão demonstrativa. “Salvar” e “Publicar” não enviam dados a servidor nem modificam a vitrine pública. Para limpar os dados locais, use as ferramentas de armazenamento do navegador.
 
 ## Comandos
 
