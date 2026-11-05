@@ -10,8 +10,7 @@ Status: proposta para revisão. Este documento não cria tabelas nem migrações
 - Conteúdo público é definido pelo status `publicado` e por registros ativos.
 - Imagens ficam em armazenamento de objetos; o banco guarda URL, metadados e ordem.
 - Toda mudança editorial relevante deve deixar registro de auditoria.
-- Valores monetários devem usar `integer` em centavos (`price_cents`), evitando
-  problemas de arredondamento com ponto flutuante.
+- Valores monetários devem usar `integer` em centavos (`price_cents`), evitando problemas de arredondamento com ponto flutuante.
 
 ## 2. Entidades principais
 
@@ -67,8 +66,7 @@ Uma mesma pessoa pode ter mais de uma função.
 | `created_at` | timestamptz | obrigatório |
 | `updated_at` | timestamptz | obrigatório |
 
-Não criar a categoria pública `todos` no banco; ela deve ser um filtro da API ou
-do front, não um registro editorial.
+Não criar a categoria pública `todos` no banco; ela deve ser um filtro da API ou do front, não um registro editorial.
 
 ### `boxes`
 
@@ -168,12 +166,10 @@ publicado → arquivado
 Regras:
 
 - criação inicia em `rascunho`;
-- somente `editor`, `reviewer` ou `admin` podem enviar para revisão, conforme
-  a política final;
+- somente `editor`, `reviewer` ou `admin` podem enviar para revisão, conforme a política final;
 - `reviewer` aprova e move para `pronto`;
 - `publisher` ou `admin` publica um registro `pronto`;
-- editar um registro `pronto` ou `publicado` devolve para `rascunho` ou exige nova
-  revisão, sem manter aprovação antiga;
+- editar um registro `pronto` ou `publicado` devolve para `rascunho` ou exige nova revisão, sem manter aprovação antiga;
 - publicação exige campos obrigatórios, categoria válida, imagens necessárias e
   relacionamento válido;
 - toda transição gera `editorial_events` dentro da mesma transação.
@@ -217,8 +213,7 @@ armazenamento escolhido.
 
 ## 6. Migração do catálogo atual
 
-O catálogo demonstrativo atual deve ser convertido por script de seed, não por
-importação manual no front:
+O catálogo demonstrativo atual deve ser convertido por script de seed, não por importação manual no front:
 
 1. criar categorias sem o filtro virtual `todos`;
 2. criar boxes preservando slug e dados editoriais;

@@ -151,8 +151,7 @@ Retorna o usuário autenticado ou `401 UNAUTHENTICATED`.
 POST /api/v1/auth/logout
 ```
 
-Invalida a sessão no servidor e expira o cookie no navegador. Deve exigir CSRF
-válido, como as demais operações que alteram estado.
+Invalida a sessão no servidor e expira o cookie no navegador. Deve exigir CSRF válido, como as demais operações que alteram estado.
 
 ## 5. Gestão editorial
 
@@ -250,25 +249,22 @@ fixo no código.
 ### CSRF
 
 Como a autenticação usa cookie, requisições que alteram estado (`POST`, `PATCH`,
-`PUT`, `DELETE`) devem exigir proteção contra CSRF. A estratégia preferida é
-cookie `SameSite` combinado com token CSRF enviado em header, por exemplo:
+`PUT`, `DELETE`) devem exigir proteção contra CSRF. A estratégia preferida é cookie `SameSite` combinado com token CSRF enviado em header, por exemplo:
 
 ```text
 X-CSRF-Token: <token fornecido pelo servidor>
 ```
 
-O token não deve ser aceito somente no corpo da requisição. O backend deve validar
+O token não deve ser aceito somente no corpo da requisição. O backend deve validar:
 origem, método, token e sessão antes de executar a operação.
 
 ### Sessões
 
 - O cookie contém apenas um identificador aleatório, sem dados do usuário.
 - O identificador deve ser gerado com fonte criptograficamente segura.
-- A sessão deve ser armazenada no servidor, preferencialmente em Redis ou banco
-  dedicado, com PostgreSQL como alternativa inicial de menor escala.
+- A sessão deve ser armazenada no servidor, preferencialmente em Redis ou banco dedicado, com PostgreSQL como alternativa inicial de menor escala.
 - A senha deve ser armazenada somente como hash forte, como Argon2id ou bcrypt.
-- Login deve possuir limitação de tentativas e resposta genérica para credenciais
-  inválidas.
+- Login deve possuir limitação de tentativas e resposta genérica para credenciais inválidas.
 - Logout deve invalidar a sessão no servidor, não apenas apagar o cookie.
 - Alteração de privilégio e login devem regenerar o identificador da sessão.
 - Sessões devem expirar por inatividade e por tempo máximo absoluto.
