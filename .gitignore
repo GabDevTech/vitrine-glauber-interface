@@ -4,6 +4,8 @@ dist/
 out/
 .env*
 !.env.example
+backups/
+api/storage/uploads/
 npm-debug.log*
 
 test-results/

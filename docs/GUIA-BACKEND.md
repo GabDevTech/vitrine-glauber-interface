@@ -1,7 +1,7 @@
 # Guia do backend
 
-Status: guia de operação planejado. Os comandos abaixo serão disponibilizados somente
-quando a implementação for autorizada.
+Status: infraestrutura local do PostgreSQL validada. NestJS, Prisma, schema,
+migrations e API ainda não foram implementados.
 
 ## Arquitetura local
 
@@ -17,6 +17,25 @@ O projeto terá três aplicações e um banco local:
 O PostgreSQL rodará em Docker com a mesma porta no computador e no contêiner. Se a
 porta 5432 estiver ocupada, a situação será apresentada para decisão; não haverá
 remapeamento automático.
+
+## PostgreSQL local
+
+O Docker Desktop e o PostgreSQL 17 foram instalados e validados localmente. A
+configuração está em `docker-compose.yml`; as credenciais locais ficam em `.env`,
+que é ignorado pelo Git. O modelo público dessas variáveis está em `.env.example`.
+
+Com o Docker Desktop em execução, use:
+
+```sh
+docker compose up -d postgres
+docker compose ps
+docker compose down
+```
+
+O primeiro comando inicia apenas o banco; o segundo confirma seu estado; o terceiro
+para e remove somente o contêiner e a rede, preservando o volume `postgres_data` e
+seus dados. Não usar `docker compose down -v` sem autorização explícita, pois essa
+variação remove o volume persistente.
 
 ## Estrutura prevista
 
@@ -48,8 +67,7 @@ Prisma controla o schema e migrations versionadas. Antes de qualquer migration,
 importação ou teste que altere dados, será criado backup por pg_dump. Migrations
 destrutivas, resets, restaurações e exclusões dependem de autorização explícita.
 
-O seed inicial parte de src/data/catalog.js, é idempotente e não sobrescreve dados de
-gestão. PostgreSQL só se torna fonte oficial depois da conferência do seed e da
+O seed inicial parte de src/data/catalog.js, é idempotente e não sobrescreve dados de gestão. PostgreSQL só se torna fonte oficial depois da conferência do seed e da
 integração dos frontends.
 
 ## Mídias, logs e saúde
