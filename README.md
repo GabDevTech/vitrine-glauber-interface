@@ -1,6 +1,6 @@
 # Vitrine Glauber
 
-Site público para descobrir boxes e produtos do Centro Cultural Glauber Rocha, salvar favoritos e planejar uma visita. Vue 3, JavaScript, Quasar 2, Vite 7, Pinia e Vue Router.
+Site público para descobrir boxes e produtos do Centro Cultural Glauber Rocha, salvar favoritos e planejar uma visita. A vitrine usa Vue 3, JavaScript, Quasar 2, Vite 7, Pinia e Vue Router. A área de gestão fica em `gestao/`; o backend NestJS/PostgreSQL está planejado, mas ainda não foi implementado.
 
 ## Começar
 
@@ -33,6 +33,9 @@ http://localhost:4175/gestao/login. A estrutura e os comandos estão em
 [Gestão](gestao/README.md), com um [guia para iniciantes](gestao/docs/GUIA-GESTAO.md).
 
 - [Guia de Vue para iniciantes](docs/GUIA-VUE.md): estrutura, conceitos e exemplos de alteração.
+- [Contrato da API](docs/CONTRATO-API.md): rotas, autenticação, permissões e respostas previstas.
+- [Modelo de dados](docs/MODELO-DADOS.md): entidades, revisões, relações e regras de persistência previstas.
+- [Guia do backend](docs/GUIA-BACKEND.md): arquitetura local, Docker, ambiente, banco, seed e testes planejados.
 - [Produto](PRODUCT.md): objetivo, jornada e limites da demonstração.
 - [Sistema visual](DESIGN.md): cores, tipografia, componentes e responsividade.
 - [Marca](brand-spec.md), [direção aprovada](direction-approved.md) e [origem dos arquivos](docs/ASSETS.md).

@@ -1,239 +1,144 @@
-# Modelo inicial de dados
+# Modelo de dados
 
-Status: proposta para revisão. Este documento não cria tabelas nem migrações.
+Status: modelo aprovado para implementação futura. Este documento não cria schema,
+migrations ou tabelas.
 
-## 1. Princípios
+## Princípios
 
-- PostgreSQL será a fonte de verdade para conteúdo, usuários e estados editoriais.
-- IDs internos devem ser estáveis e não depender do slug.
-- Slugs são identificadores públicos legíveis e devem ser únicos por recurso.
-- Conteúdo público é definido pelo status `publicado` e por registros ativos.
-- Imagens ficam em armazenamento de objetos; o banco guarda URL, metadados e ordem.
-- Toda mudança editorial relevante deve deixar registro de auditoria.
-- Valores monetários devem usar `integer` em centavos (`price_cents`), evitando problemas de arredondamento com ponto flutuante.
+- PostgreSQL é a fonte de verdade depois da validação do seed inicial.
+- Prisma é o ORM oficial para entidades, relações, consultas e migrations. SQL direto
+  permanece permitido quando tecnicamente justificado.
+- Todos os instantes são timestamptz em UTC; a interface apresenta America/Bahia.
+- Migrations destrutivas, resets ou operações que apaguem dados exigem autorização.
+- IDs das entidades de negócio são BIGINT. A API os expõe como texto.
+- Slugs são gerados e validados exclusivamente pelo servidor a partir do nome.
 
-## 2. Entidades principais
+## Identificadores e URLs
 
-### `users`
-
-| Campo | Tipo sugerido | Regras |
+| Recurso | Identidade | Identificador público |
 | --- | --- | --- |
-| `id` | uuid | PK |
-| `name` | varchar(120) | obrigatório |
-| `email` | citext | obrigatório, único |
-| `password_hash` | text | obrigatório, nunca exposto |
-| `status` | enum | `active`, `blocked`, `invited` |
-| `created_at` | timestamptz | obrigatório |
-| `updated_at` | timestamptz | obrigatório |
-| `last_login_at` | timestamptz | opcional |
+| Box | BIGINT | slug único entre boxes |
+| Produto | BIGINT | slug único entre produtos |
+| Categoria | BIGINT | código/slug único entre categorias |
+| Mídia | BIGINT | chave aleatória interna de armazenamento |
+| Evento de auditoria | BIGINT | não público |
+| Sessão | BIGINT | token aleatório seguro, salvo como hash |
 
-### `roles`
+Em colisões, o servidor acrescenta sufixos (nome, nome-2). Boxes e produtos podem
+usar o mesmo slug porque suas rotas públicas são distintas. Ao mudar o nome, o slug
+público muda; a rota anterior retorna 404, sem redirecionamento.
 
-| Campo | Tipo sugerido | Regras |
-| --- | --- | --- |
-| `id` | uuid | PK |
-| `name` | varchar(40) | único |
-| `description` | text | opcional |
+## Conteúdo e revisões
 
-### `user_roles`
+Boxes e products são a identidade estável do item. Seus dados editoriais ficam em
+box_revisions e product_revisions.
 
-Tabela de relação entre usuários e funções. Deve possuir chave única composta por
-`user_id` e `role_id`.
+- Cada item possui no máximo uma revisão publicada e uma revisão de trabalho.
+- A gestão edita a revisão de trabalho; a revisão publicada continua na vitrine.
+- Ao publicar, a nova revisão substitui a anterior; versões anteriores viram
+  histórico interno.
+- Estados: draft, in_review, ready, published e archived.
+- Todo conteúdo possui version, iniciada em 1, para impedir sobrescrita concorrente.
+- Arquivamento remove da vitrine sem apagar o histórico. Restauração exige novo fluxo
+  editorial antes de publicar.
 
-Funções iniciais sugeridas:
+### Box
 
-| Função | Responsabilidade |
-| --- | --- |
-| `viewer` | Consultar a gestão, sem editar |
-| `editor` | Criar e editar rascunhos, enviar para revisão |
-| `reviewer` | Aprovar ou rejeitar revisões |
-| `publisher` | Publicar e arquivar conteúdo aprovado |
-| `admin` | Usuários, funções e configurações administrativas |
+Cada box possui, em sua revisão: nome (2–130), slug, nome do responsável (2–130),
+número de box inteiro positivo e único, localização pública (até 180), horário
+público (até 180), descrição opcional (até 2000), história opcional (até 5000),
+WhatsApp opcional e foto do responsável.
 
-Uma mesma pessoa pode ter mais de uma função.
+Boxes têm uma ou mais categorias, sem categoria principal/secundária. A relação
+box_categories pertence à revisão. A foto do responsável é uma única mídia por
+revisão. WhatsApp só aparece publicamente se o box estiver publicado e o contato
+tiver sido explicitamente autorizado.
 
-### `categories`
+### Produto
 
-| Campo | Tipo sugerido | Regras |
-| --- | --- | --- |
-| `id` | varchar(40) | PK estável, como `artesanato` |
-| `label` | varchar(80) | obrigatório |
-| `icon` | varchar(80) | opcional |
-| `tone` | varchar(30) | opcional |
-| `description` | varchar(240) | opcional |
-| `active` | boolean | padrão `true` |
-| `position` | integer | ordenação |
-| `created_at` | timestamptz | obrigatório |
-| `updated_at` | timestamptz | obrigatório |
+Cada produto possui, em sua revisão: nome (2–130), slug, box_id, category_id,
+descrição opcional (até 2000), price_cents opcional e de uma a cinco mídias. Uma
+mídia é capa e as demais possuem ordem explícita. O produto pode ser preparado para
+box ainda não publicado, mas só é publicado quando o box correspondente está público.
+Arquivar um box oculta seus produtos da vitrine.
 
-Não criar a categoria pública `todos` no banco; ela deve ser um filtro da API ou do front, não um registro editorial.
+Preço é inteiro em centavos, nunca float, e usa BRL na V1. A apresentação é, por
+exemplo, 25,90R$; preço ausente mostra “Consulte o expositor”.
 
-### `boxes`
+### Categoria
 
-| Campo | Tipo sugerido | Regras |
-| --- | --- | --- |
-| `id` | uuid | PK |
-| `slug` | varchar(120) | único |
-| `name` | varchar(80) | obrigatório |
-| `owner_name` | varchar(80) | opcional |
-| `box_number` | varchar(30) | opcional |
-| `category_id` | varchar(40) | FK para `categories` |
-| `description` | varchar(400) | obrigatório em revisão |
-| `story` | text | opcional |
-| `whatsapp` | varchar(30) | privado até validação/publicação |
-| `hours` | varchar(240) | opcional |
-| `location` | varchar(160) | opcional |
-| `status` | enum | estado editorial |
-| `version` | integer | controle de concorrência |
-| `created_at` | timestamptz | obrigatório |
-| `updated_at` | timestamptz | obrigatório |
-| `published_at` | timestamptz | opcional |
+categories contém id, nome (2–80), código/slug, descrição opcional (até 500), ícone
+permitido pela interface, tom permitido, active, version, autoria e datas. Produtos
+têm uma categoria; boxes podem ter várias. Categoria inativa não pode ser usada em
+novos vínculos ou filtros públicos. Exclusão física só é possível sem vínculos.
 
-### `products`
+## Mídias
 
-| Campo | Tipo sugerido | Regras |
-| --- | --- | --- |
-| `id` | uuid | PK |
-| `slug` | varchar(120) | único |
-| `box_id` | uuid | FK obrigatória para `boxes` |
-| `name` | varchar(80) | obrigatório |
-| `category_id` | varchar(40) | FK para `categories` |
-| `price_cents` | integer | nulo permitido, nunca negativo |
-| `description` | varchar(400) | obrigatório em revisão |
-| `status` | enum | estado editorial |
-| `version` | integer | controle de concorrência |
-| `created_at` | timestamptz | obrigatório |
-| `updated_at` | timestamptz | obrigatório |
-| `published_at` | timestamptz | opcional |
+media guarda id, storage_key aleatória, nome original sanitizado, MIME validado,
+tamanho, largura, altura, tipo, estado, autoria e datas. O arquivo não é salvo no
+PostgreSQL: no desenvolvimento fica em api/storage/uploads/, em volume Docker
+persistente e ignorado pelo Git.
 
-Um produto não pode ser publicado se o box relacionado não estiver publicado.
+Uploads aceitam JPG, PNG e WebP de até 8 MB, são decodificados, têm metadados
+removidos e são convertidos para WebP com lado máximo de 1600 px. Mídia pública é
+entregue apenas se estiver ligada a conteúdo publicado; mídia privada exige sessão e
+permissão. Mídias órfãs ficam 30 dias, salvo exclusão imediata confirmada por
+moderator/admin e sem vínculo restante.
 
-### `media`
+## Contas, papéis e preferências
 
-Tabela comum para imagens de boxes, produtos e responsáveis.
+users contém id, nome de usuário único, nome real, e-mail institucional único, hash
+Argon2id, estado, datas e atividade recente. Estados: pending_invitation, active,
+blocked, invitation_expired e removed.
 
-| Campo | Tipo sugerido | Regras |
-| --- | --- | --- |
-| `id` | uuid | PK |
-| `storage_key` | text | único |
-| `url` | text | URL pública ou assinada |
-| `mime_type` | varchar(80) | validado no upload |
-| `size_bytes` | integer | limite definido pelo backend |
-| `width` | integer | obrigatório para imagens |
-| `height` | integer | obrigatório para imagens |
-| `alt_text` | varchar(160) | obrigatório para imagem pública |
-| `created_by` | uuid | FK para `users` |
-| `created_at` | timestamptz | obrigatório |
+roles e user_roles permitem acumular editor, moderator e admin. Preferências vivem
+em user_preferences (relação 1:1) e são independentes dos papéis: tema, alto
+contraste, tamanho de texto e redução de movimento.
 
-### `box_media` e `product_media`
+Contas pendentes recebem convite genérico, sem expor nome real. O aceite confirma o
+nome cadastrado, define nome de usuário e senha. Admin não visualiza senhas nem
+altera dados de identidade de contas ativas na V1.
 
-Tabelas de relação com `media`, contendo:
+## Convites, sessões e presença
 
-```text
-entity_id
-media_id
-position
-kind: cover | gallery | owner
-```
+invitations contém id, conta, hash de token, expiração, uso, revogação, tentativas e
+administrador criador. Reenvio revoga o convite anterior.
 
-Deve existir no máximo uma capa por entidade. A ordem da galeria deve ser
-determinística por `position`.
+sessions contém id, conta, hash de token, criação, última atividade, expiração por
+inatividade, expiração absoluta, revogação e metadados mínimos pseudonimizados. Uma
+conta pode ter várias sessões. A presença é calculada a partir da atividade; os
+rótulos finais serão definidos durante a configuração da interface.
 
-### `editorial_events`
+## Auditoria e notificações
 
-Registro imutável das ações editoriais.
+audit_events é imutável: id, autor, ação, tipo e ID do recurso, instante, request_id,
+resumo seguro, alterações limitadas e motivo quando aplicável. Não armazena senhas,
+tokens, cookies, IP bruto ou conteúdo sensível. Retenção inicial: permanente.
 
-| Campo | Tipo sugerido | Regras |
-| --- | --- | --- |
-| `id` | uuid | PK |
-| `entity_type` | varchar(30) | `box` ou `product` |
-| `entity_id` | uuid | ID do registro |
-| `from_status` | varchar(30) | pode ser nulo na criação |
-| `to_status` | varchar(30) | obrigatório |
-| `action` | varchar(40) | ação realizada |
-| `actor_id` | uuid | usuário responsável |
-| `comment` | text | opcional, útil para rejeição |
-| `created_at` | timestamptz | obrigatório |
+notifications contém destinatário, tipo, título, mensagem, recurso opcional, autor,
+criação e leitura. É criada na mesma transação da ação correspondente, não é apagada
+ao ser lida e tem retenção inicial de 90 dias.
 
-## 3. Estados editoriais
+## Integridade, índices e retenção
 
-```text
-rascunho → em-revisao → pronto → publicado
-              ├────────→ rascunho  (rejeição ou devolução)
-publicado → arquivado
-```
+- Unicidade case-insensitive para e-mail e nome de usuário.
+- Unicidade de slug/código no escopo de seu recurso e de box_number numérico.
+- Chaves estrangeiras impedem vínculos quebrados; não haverá cascata silenciosa
+  sobre histórico, revisão ou auditoria.
+- price_cents >= 0 e version >= 1 são restrições do banco.
+- Índices cobrem slugs publicados, estado, relações de categoria, box/produto,
+  revisões ativas, sessões válidas, notificações não lidas e auditoria.
+- Conteúdo arquivado e auditoria são preservados. Contas removidas minimizam dados
+  pessoais onde possível, preservando referência técnica de auditoria.
+- Backups locais usam pg_dump, são ignorados pelo Git e mantêm os sete mais recentes.
+  Restauração exige confirmação explícita.
 
-Regras:
+## Seed e importação do catálogo atual
 
-- criação inicia em `rascunho`;
-- somente `editor`, `reviewer` ou `admin` podem enviar para revisão, conforme a política final;
-- `reviewer` aprova e move para `pronto`;
-- `publisher` ou `admin` publica um registro `pronto`;
-- editar um registro `pronto` ou `publicado` devolve para `rascunho` ou exige nova revisão, sem manter aprovação antiga;
-- publicação exige campos obrigatórios, categoria válida, imagens necessárias e
-  relacionamento válido;
-- toda transição gera `editorial_events` dentro da mesma transação.
+O catálogo estático em src/data/catalog.js será a fonte do seed inicial. O seed é
+idempotente em desenvolvimento: preserva relações, não cria duplicatas e nunca
+sobrescreve alterações de gestão. Ele não roda automaticamente em produção.
 
-## 4. Sessões
-
-### `sessions`
-
-Se PostgreSQL for usado para sessões na primeira versão:
-
-| Campo | Tipo sugerido | Regras |
-| --- | --- | --- |
-| `id_hash` | varchar(128) | hash do identificador do cookie, PK |
-| `user_id` | uuid | FK para `users` |
-| `csrf_secret_hash` | varchar(128) | segredo para proteção CSRF |
-| `created_at` | timestamptz | obrigatório |
-| `last_seen_at` | timestamptz | renovado conforme política |
-| `expires_at` | timestamptz | expiração absoluta |
-| `revoked_at` | timestamptz | logout ou revogação |
-| `ip_hash` | varchar(128) | opcional, sem guardar IP bruto |
-| `user_agent_hash` | varchar(128) | opcional |
-
-Alternativa recomendada para escala: Redis para sessões e PostgreSQL para os
-dados permanentes. A API deve manter o mesmo contrato independentemente do
-armazenamento escolhido.
-
-## 5. Integridade e índices
-
-Índices e restrições iniciais:
-
-- índice único em `users.email` normalizado;
-- índice único em `boxes.slug` e `products.slug`;
-- índice em `(status, updated_at)` para filas editoriais;
-- índice em `products.box_id`;
-- índice em `category_id` nos recursos públicos;
-- `CHECK price_cents >= 0`;
-- `CHECK version >= 1`;
-- FKs com comportamento explícito para impedir apagar categoria ou box em uso;
-- exclusão lógica ou arquivamento para conteúdo publicado;
-- transições editoriais e atualização do registro na mesma transação.
-
-## 6. Migração do catálogo atual
-
-O catálogo demonstrativo atual deve ser convertido por script de seed, não por importação manual no front:
-
-1. criar categorias sem o filtro virtual `todos`;
-2. criar boxes preservando slug e dados editoriais;
-3. criar produtos com `box_id` e `price_cents`;
-4. criar metadados das imagens existentes;
-5. definir status inicial conforme `editorialStatus.js`;
-6. validar vínculos e slugs duplicados;
-7. executar verificação de contagens antes de habilitar a API pública.
-
-O script de seed deve ser idempotente em ambiente de desenvolvimento e nunca
-substituir dados de produção sem uma operação explícita.
-
-## 7. Decisões pendentes antes da implementação
-
-- UUID ou outro formato de ID público;
-- PostgreSQL também para sessões ou Redis;
-- provedor de armazenamento de imagens;
-- nomes finais dos papéis e possibilidade de aprovação pelo próprio editor;
-- política exata de expiração por inatividade e tempo absoluto;
-- campos obrigatórios para publicação de box e produto;
-- estratégia de slug quando um nome for alterado;
-- política de exclusão, arquivamento e restauração;
-- se `whatsapp` será armazenado e publicado na primeira versão.
+O IndexedDB da gestão não é apagado nem migrado automaticamente. Uma importação futura
+será explícita, autenticada, validada, com prévia e confirmação; imagens em Data URL
+serão convertidas para o armazenamento de mídia.
