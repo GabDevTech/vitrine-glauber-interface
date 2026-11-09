@@ -1,7 +1,6 @@
 # Guia do backend
 
-Status: infraestrutura local do PostgreSQL validada. NestJS, Prisma, schema,
-migrations e API ainda não foram implementados.
+Status: PostgreSQL local validado e estrutura inicial do NestJS criada. Prisma, schema, migrations e rotas da API ainda não foram implementados.
 
 ## Arquitetura local
 
@@ -46,12 +45,10 @@ api/
 │   ├── notifications/ audit/ health/
 │   └── common/ config/ database/
 ├── prisma/
-└── storage/uploads/       # ignorado pelo Git; persistido em volume Docker
+└── storage/uploads/       # pasta local futura, ignorada pelo Git
 ~~~
 
-O backend usa TypeScript estrito, npm, Node 24, NestJS, Prisma e PostgreSQL.
-ESLint, Prettier e Jest se aplicam apenas a api/; os frontends não serão
-reformatados por consequência.
+O backend inicial usa TypeScript estrito, npm, Node 24 e NestJS. Prisma será integrado na etapa do banco. ESLint, Prettier e Jest se aplicam apenas a `api/`; os frontends não serão reformatados por consequência.
 
 ## Ambiente e segredos
 
@@ -63,28 +60,20 @@ reformatados por consequência.
 
 ## Banco, migrations e seed
 
-Prisma controla o schema e migrations versionadas. Antes de qualquer migration,
-importação ou teste que altere dados, será criado backup por pg_dump. Migrations
-destrutivas, resets, restaurações e exclusões dependem de autorização explícita.
+Prisma controla o schema e migrations versionadas. Antes de qualquer migration, importação ou teste que altere dados, será criado backup por pg_dump. Migrations destrutivas, resets, restaurações e exclusões dependem de autorização explícita.
 
-O seed inicial parte de src/data/catalog.js, é idempotente e não sobrescreve dados de gestão. PostgreSQL só se torna fonte oficial depois da conferência do seed e da
-integração dos frontends.
+O seed inicial parte de src/data/catalog.js, é idempotente e não sobrescreve dados de gestão. PostgreSQL só se torna fonte oficial depois da conferência do seed e da integração dos frontends.
 
 ## Mídias, logs e saúde
 
-Arquivos processados ficam em api/storage/uploads/, em volume Docker, enquanto o
-PostgreSQL guarda metadados e relações. O endpoint /api/v1/health informa a saúde da
-API e do banco sem revelar detalhes internos.
+Quando o módulo de mídia for implementado, os arquivos processados ficarão em `api/storage/uploads/`, pasta local no Windows e ignorada pelo Git. A pasta ainda não existe; será criada junto ao módulo. O volume `postgres_data` do Compose contém apenas o banco. Se a API vier a rodar em contêiner, a persistência dos uploads exigirá configuração própria. O PostgreSQL guardará somente metadados e relações. O endpoint `/api/v1/health` informará a saúde da API e do banco sem revelar detalhes internos.
 
-Logs incluem método, rota, status, duração e requestId. Eles não registram segredos
-ou dados de autenticação. O cache público em memória é curto e opcional; em
+Logs incluem método, rota, status, duração e requestId. Eles não registram segredos ou dados de autenticação. O cache público em memória é curto e opcional; em
 desenvolvimento pode ficar desabilitado.
 
 ## Testes e documentação técnica
 
-Os scripts futuros incluem lint, test, test:e2e e build. O banco de testes é isolado
-e não deve limpar o banco de desenvolvimento. A cobertura inicial inclui sessões,
-permissões, fluxo editorial, privacidade, conflitos, convites, mídias e saúde.
+Na pasta `api/`, já estão disponíveis `npm run lint`, `npm test`, `npm run test:e2e` e `npm run build`. Os testes Jest executam em uma única sequência para reduzir o consumo de recursos. O banco de testes futuro será isolado e não deve limpar o banco de desenvolvimento. A cobertura planejada inclui sessões, permissões, fluxo editorial, privacidade, conflitos, convites, mídias e saúde.
 
 Swagger/OpenAPI ficará disponível apenas em desenvolvimento, em /api/docs.
 docs/CONTRATO-API.md é a referência humana do contrato, e docs/MODELO-DADOS.md
