@@ -1,6 +1,6 @@
 # Gestão da Vitrine Glauber
 
-Aplicação demonstrativa de gestão, separada da vitrine pública. Permite conhecer o fluxo de boxes, produtos e revisão editorial sem alterar os dados publicados.
+Aplicação de gestão separada da vitrine pública. O acesso agora usa a API, com convite inicial e sessão por cookie. Boxes, produtos e mídias do painel ainda usam armazenamento local do navegador e não alteram os dados publicados.
 
 Na raiz do repositório, instale as dependências uma vez e inicie a gestão:
 
@@ -9,9 +9,9 @@ npm ci
 npm run dev:gestao
 ```
 
-Abra <http://localhost:4175/gestao/login> e preencha qualquer login e senha. Não há conta ou autenticação real. O marcador em `sessionStorage` serve apenas para organizar a navegação.
+Para usar o login, mantenha PostgreSQL e API ativos e crie a conta inicial pelo comando `npm run admin:bootstrap` dentro de `api/`. Abra o link apresentado pelo comando, aceite o convite na página separada e defina nome de usuário e senha. Depois, entre em <http://localhost:4175/gestao/login> com o e-mail ou nome de usuário e a senha escolhida. O convite expira em 24 horas e não é enviado automaticamente por e-mail; consulte o procedimento em `docs/GUIA-BACKEND.md`.
 
-Os cadastros são cópias do catálogo inicial e ficam salvos no IndexedDB deste navegador. Recarregar a página preserva as alterações; sair encerra apenas a sessão demonstrativa. “Salvar” e “Publicar” não enviam dados a servidor nem modificam a vitrine pública. Para limpar os dados locais, use as ferramentas de armazenamento do navegador.
+Os cadastros são cópias do catálogo inicial e ficam salvos no IndexedDB deste navegador. Recarregar a página preserva as alterações; sair revoga a sessão de autenticação e limpa o estado carregado na aplicação. “Salvar” e “Publicar” ainda não enviam dados editoriais ao servidor nem modificam a vitrine pública. Para limpar os dados locais, use as ferramentas de armazenamento do navegador.
 
 ## Comandos
 

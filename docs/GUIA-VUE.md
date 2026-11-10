@@ -180,7 +180,7 @@ Mantenha os efeitos curtos e finitos. O conteúdo já aparece sem JavaScript de 
 
 ## 11. Verificar uma alteração
 
-Execute `npm test` para regras de catálogo e armazenamento e `npm run build` para a compilação. Para interface, instale Chromium com `npx playwright install chromium` e execute `npm run test:e2e`. Testes de navegador exercitam jornadas, estados e verificações automatizadas de acessibilidade. Não substituem revisão humana.
+Execute `npm test` para regras de catálogo e armazenamento e `npm run build` para a compilação. Para interface, instale Chromium com `npx playwright install chromium` e execute `npm run test:e2e`. O Playwright inicia a API e o Vite; o Docker precisa estar ativo com a migration e o seed demonstrativo já aplicados ao banco local. Os servidores são encerrados ao fim da execução, mas o PostgreSQL continua ativo. Testes de navegador exercitam jornadas, estados e verificações automatizadas de acessibilidade. Não substituem revisão humana.
 
 Confira telas estreitas e largas, Tab e Enter, busca vazia, retorno pelo navegador, tema escuro, favoritos e detalhes. Uma mudança de texto não precisa de teste que repita o texto, mas uma regra nova de busca merece uma verificação de comportamento.
 

@@ -3,9 +3,11 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ManagementBrand from './ManagementBrand.vue'
 import { useManagementTheme } from '../../stores/theme'
+import { useManagementSession } from '../../stores/session'
 defineProps({ menuOpen: Boolean })
 defineEmits(['menu', 'logout'])
 const theme = useManagementTheme()
+const session = useManagementSession()
 const router = useRouter()
 const search = ref('')
 function findProducts() {
@@ -51,13 +53,14 @@ function findProducts() {
           /></template>
         </q-input>
       </form>
-      <span class="demo-label"
-        ><span aria-hidden="true"></span>Ambiente de demonstração</span
-      >
+      <span class="demo-label"><span aria-hidden="true"></span>Conta autenticada</span>
       <q-space />
       <span class="toolbar-profile"
         ><span class="profile-avatar" aria-hidden="true">VG</span
-        ><span>Equipe Vitrine<small>Gestão do catálogo</small></span></span
+        ><span
+          >{{ session.user?.username
+          }}<small>{{ session.user?.roles?.join(', ') }}</small></span
+        ></span
       >
       <q-btn
         flat
@@ -72,7 +75,7 @@ function findProducts() {
         no-caps
         icon="logout"
         :label="$q.screen.width <= 700 ? undefined : 'Sair'"
-        aria-label="Sair da demonstração"
+        aria-label="Sair da conta"
         @click="$emit('logout')"
       />
     </q-toolbar>

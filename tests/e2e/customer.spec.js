@@ -4,17 +4,19 @@ import AxeBuilder from '@axe-core/playwright'
 test('erro de carregamento pode ser recuperado sem recarregar a página', async ({
   page,
 }) => {
-  await page.route('**/src/services/catalogService.js', (route) =>
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: `import { boxes, categories, products } from '/src/data/catalog.js';
-      let failed = false;
-      export async function fetchCatalog() {
-        if (!failed) { failed = true; throw new Error('Falha simulada'); }
-        return { boxes, categories, products };
-      }`,
-    }),
-  )
+  let shouldFail = true
+  await page.route('**/api/v1/categories**', async (route) => {
+    if (shouldFail) {
+      shouldFail = false
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Falha simulada' }),
+      })
+      return
+    }
+    await route.continue()
+  })
   await page.goto('/boxes')
   await expect(page.getByRole('alert')).toContainText('Não foi possível carregar')
   await page.getByRole('button', { name: 'Carregar catálogo' }).click()

@@ -15,9 +15,14 @@ const router = createRouter({
       component: () => import('../pages/ManagementLoginPage.vue'),
     },
     {
+      path: '/gestao/convite/aceitar',
+      component: () => import('../pages/ManagementInvitationAcceptancePage.vue'),
+      meta: { title: 'Aceitar convite' },
+    },
+    {
       path: '/gestao',
       component: () => import('../layouts/ManagementLayout.vue'),
-      meta: { requiresDemoSession: true },
+      meta: { requiresSession: true },
       children: [
         {
           path: 'painel',
@@ -47,10 +52,14 @@ const router = createRouter({
     { path: '/:pathMatch(.*)*', redirect: '/gestao/painel' },
   ],
 })
-// Fluxo demonstrativo, não autenticação nem proteção de dados reais.
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const session = useManagementSession()
-  if (to.meta.requiresDemoSession && !session.active) return '/gestao/login'
+  try {
+    await session.initialize({ force: true })
+  } catch {
+    // A rota pública permanece acessível quando não há sessão válida.
+  }
+  if (to.meta.requiresSession && !session.active) return '/gestao/login'
   if (to.path === '/gestao/login' && session.active) return '/gestao/painel'
 })
 router.afterEach((to) => {

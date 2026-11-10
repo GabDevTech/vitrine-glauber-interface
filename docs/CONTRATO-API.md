@@ -1,6 +1,6 @@
 # Contrato da API
 
-Status: contrato em implementação. A rota de saúde e as rotas públicas de consulta a categorias, boxes, produtos e mídias já estão disponíveis na API e são usadas pela vitrine pública. A gestão continua com dados locais; autenticação e operações de gestão ainda não foram implementadas.
+Status: a rota de saúde, as rotas públicas de consulta ao catálogo e o primeiro fluxo de autenticação da gestão estão implementados. A gestão ainda mantém boxes, produtos e mídias no armazenamento local do navegador; as rotas editoriais e administrativas seguem pendentes.
 
 ## Objetivo e convenções
 
@@ -14,7 +14,7 @@ A API separará a vitrine pública da gestão. A base será `/api/v1`: o version
 
 ## Erros
 
-~~~
+```
 {
   "statusCode": 422,
   "code": "VALIDATION_ERROR",
@@ -22,7 +22,7 @@ A API separará a vitrine pública da gestão. A base será `/api/v1`: o version
   "details": { "name": ["Informe entre 2 e 130 caracteres."] },
   "requestId": "req_..."
 }
-~~~
+```
 
 Os códigos técnicos são estáveis e em inglês; mensagens para a interface são em
 português. A API usa, no mínimo, 400, 401, 403, 404, 409, 422, 429 e 500.
@@ -43,7 +43,7 @@ Slug antigo retorna 404; não existe redirecionamento.
 
 ## Rotas públicas
 
-~~~
+```
 GET /api/v1/health
 GET /api/v1/categories
 GET /api/v1/boxes
@@ -51,7 +51,7 @@ GET /api/v1/boxes/:slug
 GET /api/v1/products
 GET /api/v1/products/:slug
 GET /api/v1/media/:id
-~~~
+```
 
 `GET /api/v1/health` responde `200` com `{ "data": { "status": "ok", "database": "ok" } }` quando a consulta ao banco funciona. Se a consulta falhar, responde `503` com `code: "SERVICE_UNAVAILABLE"`, mensagem genérica e `requestId`, sem expor detalhes da conexão. A rota não lê nem modifica registros do catálogo.
 
@@ -67,21 +67,27 @@ O detalhe público usa sempre o slug da revisão publicada atual. Durante uma ed
 
 ## Autenticação e convite
 
-~~~
+```
 GET  /api/v1/auth/csrf
 POST /api/v1/auth/login
 POST /api/v1/auth/logout
 GET  /api/v1/auth/me
 POST /api/v1/auth/invitations/accept
-~~~
+```
 
-Login aceita e-mail ou nome de usuário. O aceite recebe token, confirmação do nome real, nome de usuário e primeira senha. O token do convite não é devolvido por uma rota de consulta nem salvo em texto puro. Tanto login quanto aceite exigem CSRF, limitação de tentativas e verificação de origem; a consulta pública do catálogo não envia cookies.
+O primeiro Admin é criado pelo comando interativo `npm run admin:bootstrap`, executado em `api/`. O comando pede nome real completo e e-mail, exige a confirmação literal `CRIAR ADMIN` e cria uma conta pendente com papel `admin`. Exibe uma única vez um link de uso único, válido por 24 horas; não envia e-mail nem grava o token em texto puro. Em produção, `MANAGEMENT_ORIGIN` precisa ser HTTPS. O comando só inicia o cadastro quando não existem outras contas; pode emitir outro convite para a mesma conta inicial ainda pendente ou expirada se nome e e-mail coincidirem.
+
+O convite abre a página separada `/gestao/convite/aceitar`. A pessoa confirma o nome real definido pelo administrador e escolhe nome de usuário e senha; a senha tem de 8 a 130 caracteres. O token fica no fragmento da URL e é removido do endereço pelo navegador antes da submissão. Aceitar o convite não autentica automaticamente: ao concluir, a página segue para `/gestao/login`, onde a pessoa entra com e-mail ou nome de usuário e a senha recém-criada.
+
+Login cria uma sessão com token aleatório em cookie `HttpOnly`; somente o hash do token fica no PostgreSQL. A sessão expira após 30 minutos sem atividade ou 12 horas no total. O cookie usa `SameSite=Lax`, `Path=/api/v1` e `Secure` em produção. `GET /auth/me` valida a sessão e renova sua expiração por inatividade. Logout revoga a sessão no banco e limpa o cookie. Senhas são verificadas com Argon2id.
+
+Login, logout e aceite exigem `X-CSRF-Token`, cookie CSRF correspondente e a origem exata configurada em `MANAGEMENT_ORIGIN`; em desenvolvimento, a origem padrão é `http://localhost:4175`. O servidor limita login e aceite a cinco tentativas por janela de 15 minutos por endereço IP em memória do processo. O limite em memória é adequado à execução local com uma instância; em produção com múltiplas instâncias, deve ser movido para armazenamento compartilhado. A consulta pública do catálogo não envia cookies. O painel editorial permanece demonstrativo/local até a implementação das rotas de gestão.
 
 ## Gestão editorial
 
 Todas as rotas de gestão exigem sessão e permissão; `POST`, `PATCH` e `DELETE` também exigem CSRF. `editor` cria, edita e envia revisões. `moderator` pode consultar todos os registros editoriais, criar e alterar conteúdo, aprovar, devolver com comentário, publicar e arquivar, inclusive revisões próprias. `admin` acumula essas permissões e administra contas, papéis e categorias. Uma pessoa pode acumular papéis; alterações de papel preservam suas preferências.
 
-~~~
+```
 GET   /api/v1/management/boxes
 POST  /api/v1/management/boxes
 GET   /api/v1/management/boxes/:id
@@ -92,13 +98,13 @@ POST  /api/v1/management/boxes/:id/return
 POST  /api/v1/management/boxes/:id/publish
 POST  /api/v1/management/boxes/:id/archive
 POST  /api/v1/management/boxes/:id/restore
-~~~
+```
 
 As mesmas rotas existem sob `/api/v1/management/products`. Consulta, criação, edição e envio à revisão são permitidos a `editor`, `moderator` e `admin`; aprovação, devolução, publicação, arquivamento e restauração exigem `moderator` ou `admin`. A edição envia a `version` pertinente; conflitos retornam `409`. Devolução exige comentário de 5 a 1000 caracteres. O conteúdo publicado segue visível enquanto sua revisão de trabalho é editada; `restore` não republica sozinho.
 
 ## Categorias, mídias e conta própria
 
-~~~
+```
 GET    /api/v1/management/categories
 POST   /api/v1/management/categories
 PATCH  /api/v1/management/categories/:id
@@ -116,7 +122,7 @@ PATCH /api/v1/management/me/preferences
 POST  /api/v1/management/me/change-password
 GET   /api/v1/management/notifications
 POST  /api/v1/management/notifications/:id/read
-~~~
+```
 
 Somente `admin` administra categorias. Desativar exige retirar ou substituir seus vínculos editoriais atuais; excluir exige ausência de vínculos preservados. `editor`, `moderator` e `admin` podem enviar e consultar mídia de conteúdo editorial autorizado. `editor` pode desvincular mídia de uma revisão de trabalho; `moderator` e `admin` também podem excluir mídia definitivamente, sem vínculos restantes, com confirmação e auditoria. Upload aceita JPG, PNG e WebP de até 8 MB, valida o arquivo, remove metadados e gera WebP de até 1600 px. A revisão de box exige capa para publicação e pode ter retrato opcional; a revisão de produto exige de uma a cinco imagens.
 

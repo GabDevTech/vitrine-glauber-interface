@@ -1,33 +1,67 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useManagementCatalog } from './catalog'
-
-const key = 'vitrine:gestao:demo'
-function readSession() {
-  try {
-    return sessionStorage.getItem(key) === 'active'
-  } catch {
-    return false
-  }
-}
+import * as authService from '../services/authService'
 export const useManagementSession = defineStore('managementSession', () => {
-  const active = ref(readSession())
-  function enter() {
-    active.value = true
+  const user = ref(null)
+  const initialized = ref(false)
+  const loading = ref(false)
+  let initialization = null
+
+  async function initialize({ force = false } = {}) {
+    if (initialized.value && !force) return user.value
+    if (initialization) return initialization
+    loading.value = true
+    initialization = authService
+      .currentAccount()
+      .then((account) => {
+        user.value = account
+        initialized.value = true
+        return account
+      })
+      .catch((error) => {
+        user.value = null
+        initialized.value = true
+        throw error
+      })
+      .finally(() => {
+        loading.value = false
+        initialization = null
+      })
+    return initialization
+  }
+
+  async function login(credentials) {
+    loading.value = true
     try {
-      sessionStorage.setItem(key, 'active')
-    } catch {
-      /* Continua nesta aba sem persistência. */
+      user.value = await authService.login(credentials)
+      initialized.value = true
+      return user.value
+    } finally {
+      loading.value = false
     }
   }
-  function leave() {
-    active.value = false
+
+  async function leave() {
+    let failure
+    try {
+      await authService.logout()
+    } catch (error) {
+      failure = error
+    }
+    user.value = null
+    initialized.value = true
     useManagementCatalog().clear()
-    try {
-      sessionStorage.removeItem(key)
-    } catch {
-      /* Estado em memória já foi limpo. */
-    }
+    if (failure) throw failure
   }
-  return { active, enter, leave }
+
+  return {
+    user,
+    active: computed(() => Boolean(user.value)),
+    initialized,
+    loading,
+    initialize,
+    login,
+    leave,
+  }
 })

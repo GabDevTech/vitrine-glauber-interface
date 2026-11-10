@@ -1,21 +1,26 @@
 <script setup>
-import { useDemoLogin } from '../../composables/useDemoLogin'
-const emit = defineEmits(['enter'])
-const { email, password, showPassword, error, submit } = useDemoLogin(() => emit('enter'))
+import { ref } from 'vue'
+const emit = defineEmits(['submit'])
+defineProps({ loading: Boolean })
+const login = ref('')
+const password = ref('')
+const showPassword = ref(false)
 const required = (value) => Boolean(String(value ?? '').trim()) || 'Preencha este campo.'
+function submit() {
+  emit('submit', { login: login.value, password: password.value })
+}
 </script>
 <template>
-  <q-form class="login-form" @submit="submit" @input="error = ''">
+  <q-form class="login-form" @submit.prevent="submit">
     <q-input
-      v-model="email"
+      v-model="login"
       outlined
       stack-label
       type="text"
-      name="email"
-      label="Login"
-      placeholder="Seu e-mail…"
+      name="login"
+      label="E-mail ou nome de usuário"
+      placeholder="E-mail ou nome de usuário"
       autocomplete="username"
-      inputmode="email"
       autocapitalize="none"
       enterkeyhint="next"
       :spellcheck="false"
@@ -49,20 +54,19 @@ const required = (value) => Boolean(String(value ?? '').trim()) || 'Preencha est
           @click="showPassword = !showPassword"
       /></template>
     </q-input>
-    <p v-if="error" class="login-error" role="alert">{{ error }}</p>
     <q-btn
       class="login-submit"
       type="submit"
       color="primary"
       unelevated
       no-caps
-      label="Acessar demonstração"
+      label="Entrar"
       icon-right="arrow_forward"
-      aria-describedby="login-demo-note"
+      :loading="loading"
+      :disable="loading"
     />
-    <p id="login-demo-note" class="login-note">
-      Para testar, use qualquer login e senha. Cadastros e fotos ficam neste navegador e
-      não afetam a vitrine pública.
+    <p class="login-note">
+      Use o e-mail ou nome de usuário e a senha definidos ao aceitar o convite.
     </p>
   </q-form>
 </template>

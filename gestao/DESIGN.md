@@ -182,4 +182,4 @@ O modelo Sass Admin enviado pelo usuário orienta a composição: navegação la
 
 Abaixo de 701px, as áreas se organizam em uma coluna. Busca e alternância entre boxes e produtos permanecem disponíveis. O editor ocupa a tela inteira, com título e ações separados da região de rolagem. A busca do catálogo mostra até cinco resultados e oferece acesso à lista completa.
 
-Na demonstração, qualquer texto não vazio em Login e Senha permite entrar. Não há conferência de credenciais nem autenticação de servidor. O formulário mantém a validação de campos vazios e a opção de mostrar a senha.
+O formulário de login usa a API e aceita e-mail ou nome de usuário com senha. O primeiro Admin define esses dados na página separada de aceite do convite. A interface mantém a opção de mostrar a senha e apresenta erros sem revelar se o e-mail ou o nome de usuário existe. O painel editorial continua em modo local e demonstrativo.

@@ -4,9 +4,9 @@ Todos os caminhos deste guia são relativos à raiz do repositório. A pasta `ge
 
 ## 1. Executar e experimentar
 
-Na raiz, rode `npm ci` e depois `npm run dev:gestao`. Acesse <http://localhost:4175/gestao/login> e entre na demonstração. Consulte a visão geral, filtre boxes ou produtos, abra um cadastro e salve uma mudança. Recarregue para verificar que os cadastros e fotos continuam disponíveis neste navegador.
+Para usar a autenticação, inicie PostgreSQL e API conforme `docs/GUIA-BACKEND.md`, crie o primeiro convite com `npm run admin:bootstrap` dentro de `api/` e inicie a gestão na raiz com `npm run dev:gestao`. Abra o link impresso pelo comando para aceitar o convite, definir nome de usuário e senha; depois entre em <http://localhost:4175/gestao/login>. Os cadastros do painel continuam demonstrativos: consulte a visão geral, filtre boxes ou produtos, abra um cadastro e salve uma mudança. Recarregue para verificar que os cadastros e fotos continuam disponíveis neste navegador.
 
-O formulário não faz login real. Use qualquer login e senha para testar. `gestao/src/stores/session.js` guarda apenas um marcador em `sessionStorage`; a checagem do router controla a experiência de navegação. Qualquer pessoa com acesso ao navegador pode modificar esse estado. Não use a demonstração como proteção de informações.
+O convite abre `/gestao/convite/aceitar`, uma tela distinta do login. A pessoa confirma o nome real que o Admin cadastrou e escolhe nome de usuário e senha; aceitar o convite não autentica automaticamente. O link dura 24 horas. A tela de login aceita o e-mail ou o nome de usuário e a senha escolhida. A sessão administrativa é validada pela API e usa cookie HttpOnly. As telas e operações editoriais ainda usam dados locais e não devem ser tratadas como publicação real.
 
 ## 2. Entender como uma tela aparece
 
@@ -44,12 +44,12 @@ O [guia de Vue da vitrine](../../docs/GUIA-VUE.md) traz exemplos dos mesmos conc
 
 `gestao/src/stores/catalog.js` guarda essa cópia para os componentes. Uma store é um estado compartilhado: a tabela e os cartões de resumo leem os mesmos registros. Suas ações principais são:
 
-| Ação              | Responsabilidade atual                              |
-| ----------------- | --------------------------------------------------- |
-| `load()`          | Carregar o catálogo inicial pelo serviço            |
+| Ação              | Responsabilidade atual                                      |
+| ----------------- | ----------------------------------------------------------- |
+| `load()`          | Carregar o catálogo inicial pelo serviço                    |
 | `save(input)`     | Validar e criar ou atualizar um registro no IndexedDB local |
 | `publish(record)` | Mudar um registro pronto para publicado no IndexedDB local  |
-| `clear()`         | Limpar os dados ao sair                             |
+| `clear()`         | Limpar os dados ao sair                                     |
 
 `gestao/src/utils/records.js` reúne funções sem interface: filtrar, validar, gerar um slug único e calcular totais. Slug é o nome simplificado usado como identificador legível, como `cesto-artesanal`.
 

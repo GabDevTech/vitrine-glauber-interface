@@ -18,9 +18,14 @@ function closeMobileMenu() {
   if (quasar.screen.width < 1024) drawerOpen.value = false
 }
 watch(() => route.path, closeMobileMenu)
-function logout() {
-  session.leave()
-  router.replace('/gestao/login')
+async function logout() {
+  try {
+    await session.leave()
+  } catch {
+    // Clear the local UI even if the API is temporarily unreachable.
+  } finally {
+    router.replace('/gestao/login')
+  }
 }
 </script>
 <template>
@@ -48,8 +53,8 @@ function logout() {
             ><div :key="current.path"><component :is="Component" /></div></Transition
         ></router-view>
         <p class="management-session-note">
-          Ambiente de demonstração. Cadastros e fotos ficam salvos neste navegador e não
-          alteram a vitrine pública.
+          A autenticação usa a API. Cadastros editoriais e fotos ainda ficam neste
+          navegador e não alteram a vitrine pública.
         </p>
       </main>
     </q-page-container>

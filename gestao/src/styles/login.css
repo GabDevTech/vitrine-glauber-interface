@@ -135,6 +135,15 @@
   font-size: 0.8125rem;
   line-height: 1.6;
 }
+.login-success {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: var(--positive, #176b45);
+  background: color-mix(in srgb, var(--positive, #176b45) 10%, transparent);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
 body.body--dark .login-error {
   color: #ffb5be;
 }

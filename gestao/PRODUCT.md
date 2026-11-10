@@ -6,14 +6,14 @@ Demonstrar uma rotina editorial simples para organizar os boxes e os produtos da
 
 ## Fluxos existentes
 
-| Área                  | O que permite fazer                                                 |
-| --------------------- | ------------------------------------------------------------------- |
-| Entrada demonstrativa | Preencher e-mail e senha de exemplo e abrir uma sessão de navegação |
-| Visão geral           | Consultar quantidades derivadas dos cadastros e uma fila editorial  |
-| Boxes                 | Buscar, filtrar, criar e editar os campos básicos de um box         |
-| Produtos              | Buscar, filtrar, criar e editar um produto vinculado a um box       |
-| Revisões              | Trabalhar com cadastros ainda não publicados                        |
-| Preferências e saída  | Alternar o tema e encerrar a demonstração                           |
+| Área                 | O que permite fazer                                                 |
+| -------------------- | ------------------------------------------------------------------- |
+| Acesso               | Aceitar convite, definir nome de usuário e senha e entrar com a API |
+| Visão geral          | Consultar quantidades derivadas dos cadastros e uma fila editorial  |
+| Boxes                | Buscar, filtrar, criar e editar os campos básicos de um box         |
+| Produtos             | Buscar, filtrar, criar e editar um produto vinculado a um box       |
+| Revisões             | Trabalhar com cadastros ainda não publicados                        |
+| Preferências e saída | Alternar o tema e encerrar a sessão autenticada                     |
 
 Os estados editoriais são `rascunho`, `em-revisao`, `pronto` e `publicado`. Os rótulos visíveis são definidos em `gestao/src/config/statuses.js`. A ação de publicar na fila muda um cadastro pronto para publicado somente na demonstração.
 
@@ -21,9 +21,9 @@ Os estados editoriais são `rascunho`, `em-revisao`, `pronto` e `publicado`. Os 
 
 O serviço `gestao/src/services/catalogService.js` cria uma cópia do catálogo da vitrine, associa os estados de exemplo de `gestao/src/data/editorialStatus.js` e entrega os registros à store da gestão. Os totais e a fila usam esses mesmos registros; não são indicadores de vendas, visitas ou desempenho.
 
-As edições são persistidas localmente no IndexedDB deste navegador e continuam disponíveis após recarregar. Não há API, POST, banco de dados remoto ou publicação na vitrine. O sinal de sessão em `sessionStorage` não verifica identidade e não protege dados. A preferência de tema e os cadastros locais podem permanecer salvos no navegador.
+As edições são persistidas localmente no IndexedDB deste navegador e continuam disponíveis após recarregar. A autenticação usa a API e uma sessão em cookie HttpOnly; os registros editoriais ainda não são enviados ao servidor nem publicados na vitrine. A preferência de tema e os cadastros locais podem permanecer salvos no navegador.
 
-O escopo atual não inclui usuários, permissões, relatórios, gráficos, uploads ou exclusão de registros. Autenticação e persistência reais exigem um projeto próprio de servidor, contratos, validação e autorização antes de usar dados reais.
+O escopo atual ainda não inclui administração de usuários e permissões, relatórios, gráficos, uploads editoriais ou persistência editorial na API. As rotas de gerenciamento e a autorização por papel serão implementadas em etapas posteriores.
 
 ## Diretrizes de manutenção
 

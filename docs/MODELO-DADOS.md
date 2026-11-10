@@ -13,14 +13,14 @@ Status: modelo aprovado e representado em `api/prisma/schema.prisma` e nos arqui
 
 ## Identificadores e URLs
 
-| Recurso | Identidade | Identificador público |
-| --- | --- | --- |
-| Box | BIGINT | slug único entre boxes |
-| Produto | BIGINT | slug único entre produtos |
-| Categoria | BIGINT | código/slug único entre categorias |
-| Mídia | BIGINT | chave aleatória interna de armazenamento |
-| Evento de auditoria | BIGINT | não público |
-| Sessão | BIGINT | token aleatório seguro, salvo como hash |
+| Recurso             | Identidade | Identificador público                    |
+| ------------------- | ---------- | ---------------------------------------- |
+| Box                 | BIGINT     | slug único entre boxes                   |
+| Produto             | BIGINT     | slug único entre produtos                |
+| Categoria           | BIGINT     | código/slug único entre categorias       |
+| Mídia               | BIGINT     | chave aleatória interna de armazenamento |
+| Evento de auditoria | BIGINT     | não público                              |
+| Sessão              | BIGINT     | token aleatório seguro, salvo como hash  |
 
 Em colisões, o servidor acrescenta sufixos (`nome`, `nome-2`). Boxes e produtos podem usar o mesmo slug porque suas rotas públicas são distintas. Slugs já publicados ficam reservados permanentemente no próprio tipo de recurso, inclusive depois de uma mudança de nome ou arquivamento; não podem ser atribuídos a outro item. Assim, uma URL antiga não passa a abrir um item diferente. Um slug proposto para revisão de trabalho também não pode colidir com o slug público ou reservado de outro item. A revisão histórica conserva seu slug sem exigir unicidade entre todas as linhas de histórico.
 
@@ -76,6 +76,12 @@ Contas pendentes recebem convite genérico, sem expor nome real. O aceite confir
 nome cadastrado, define nome de usuário e senha. Admin não visualiza senhas nem
 altera dados de identidade de contas ativas na V1.
 
+O comando `api/prisma/bootstrap-admin.mjs` cria apenas o convite inicial do Admin se
+o banco ainda não tiver contas. O token aleatório é apresentado uma vez, armazenado
+somente como SHA-256 e expira em 24 horas. A página de aceite exige confirmação do
+nome real cadastrado e criação de nome de usuário e senha; a senha é armazenada com
+Argon2id. O aceite ativa a conta e cria suas preferências sem iniciar a sessão.
+
 ## Convites, sessões e presença
 
 invitations contém id, conta, hash de token, expiração, uso, revogação, tentativas e
@@ -83,8 +89,9 @@ administrador criador. Reenvio revoga o convite anterior.
 
 sessions contém id, conta, hash de token, criação, última atividade, expiração por
 inatividade, expiração absoluta, revogação e metadados mínimos pseudonimizados. Uma
-conta pode ter várias sessões. A presença é calculada a partir da atividade; os
-rótulos finais serão definidos durante a configuração da interface.
+conta pode ter várias sessões. O fluxo inicial usa 30 minutos de inatividade e 12
+horas de duração absoluta. A presença é calculada a partir da atividade; os rótulos
+finais serão definidos durante a configuração da interface.
 
 ## Auditoria e notificações
 

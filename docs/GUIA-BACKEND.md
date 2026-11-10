@@ -1,17 +1,17 @@
 # Guia do backend
 
-Status: PostgreSQL local validado, primeira migration aplicada e seed demonstrativo executado após backup. O banco contém 4 categorias, 5 boxes, 8 produtos, 13 mídias e 4 revisões de trabalho. O NestJS expõe saúde e consulta pública ao catálogo e às mídias, usadas pela vitrine pública. A gestão ainda não consulta a API; autenticação e operações administrativas não foram implementadas.
+Status: PostgreSQL local validado, primeira migration aplicada e seed demonstrativo executado após backup. O banco contém 4 categorias, 5 boxes, 8 produtos, 13 mídias e 4 revisões de trabalho. O NestJS expõe saúde, consulta pública ao catálogo e o primeiro fluxo de autenticação da gestão. Os cadastros editoriais continuam locais; as rotas de gestão ainda serão implementadas.
 
 ## Arquitetura local
 
 O projeto terá três aplicações e um banco local:
 
-| Serviço | Tecnologia | Porta |
-| --- | --- | --- |
-| Vitrine pública | Vue/Quasar | 4180 |
-| Gestão | Vue/Vite | 4175 |
-| API | NestJS | 3000 |
-| PostgreSQL | Docker | 5432:5432 |
+| Serviço         | Tecnologia | Porta     |
+| --------------- | ---------- | --------- |
+| Vitrine pública | Vue/Quasar | 4180      |
+| Gestão          | Vue/Vite   | 4175      |
+| API             | NestJS     | 3000      |
+| PostgreSQL      | Docker     | 5432:5432 |
 
 O PostgreSQL rodará em Docker com a mesma porta no computador e no contêiner. Se a
 porta 5432 estiver ocupada, a situação será apresentada para decisão; não haverá
@@ -80,7 +80,7 @@ Remove-Item Env:SEED_DEMO_CONFIRM
 
 O seed cria os registros demonstrativos e converte as imagens de origem em arquivos WebP dentro de `api/storage/uploads/`. Essa pasta é ignorada pelo Git e deve ser criada na máquina de cada pessoa. O seed é idempotente e preserva registros existentes; execute-o somente no banco de desenvolvimento configurado no arquivo `api/.env`. A migration cria a estrutura vazia e não carrega registros por conta própria.
 
-Para iniciar a aplicação, mantenha o PostgreSQL ativo. Em um terminal na pasta `api/`, rode `npm run start`; em outro, na raiz, rode `npm run dev`. Abra `http://localhost:4180`. O Vite encaminha as chamadas `/api/v1` para `http://127.0.0.1:3000`. A resposta em `http://localhost:3000/api/v1/health` deve indicar `ok`, e as listas públicas devem exibir 5 boxes e 8 produtos. Para interromper, pressione `Ctrl+C` nos terminais da API e do Vite; para parar o banco sem apagar seus dados, use `docker compose stop postgres` na raiz.
+Para iniciar a aplicação, mantenha o PostgreSQL ativo. Em um terminal na pasta `api/`, rode `npm run start`; em outro, na raiz, rode `npm run dev`; em um terceiro, também na raiz, rode `npm run dev:gestao`. Abra `http://localhost:4180` para a vitrine e `http://localhost:4175/gestao/login` para a gestão. Ambos os Vite encaminham `/api/v1` para `http://127.0.0.1:3000`. A resposta em `http://localhost:3000/api/v1/health` deve indicar `ok`, e as listas públicas devem exibir 5 boxes e 8 produtos. Para interromper, pressione `Ctrl+C` nos terminais da API e dos frontends; para parar o banco sem apagar seus dados, use `docker compose stop postgres` na raiz.
 
 Nas próximas execuções, não repita a instalação, geração do Client, migration ou seed, a menos que dependências ou migrations tenham mudado. Basta iniciar Docker, API e vitrine nos respectivos terminais.
 
@@ -96,7 +96,7 @@ Não use o seed em produção.
 
 ## Estrutura prevista
 
-~~~
+```
 api/
 ├── src/
 │   ├── auth/ users/ categories/ media/ boxes/ products/
@@ -104,9 +104,9 @@ api/
 │   └── common/ config/ database/
 ├── prisma/
 └── storage/uploads/       # mídias do seed, ignoradas pelo Git
-~~~
+```
 
-O backend usa TypeScript estrito, npm, Node 24 e NestJS. O Prisma já consulta o PostgreSQL nas rotas de saúde e catálogo; autenticação e regras de gestão continuam pendentes. ESLint, Prettier e Jest se aplicam apenas a `api/`; os frontends não são reformatados por consequência.
+O backend usa TypeScript estrito, npm, Node 24 e NestJS. Prisma consulta o PostgreSQL nas rotas de saúde, catálogo e autenticação. ESLint, Prettier e Jest se aplicam apenas a `api/`; os frontends não são reformatados por consequência.
 
 ## Consulta pública da API
 
@@ -124,6 +124,12 @@ Na pasta `api/`, `npm exec prisma -- validate` confere o schema e `npm exec pris
 - .env.example contém apenas valores fictícios e nomes de variáveis.
 - O frontend usa o caminho relativo `/api/v1`; não é necessária uma variável `VITE_*` para o endereço da API local.
 - Segredos, cookies, hashes, tokens, senhas e credenciais não entram em código, documentação versionada ou logs.
+
+## Primeiro acesso do Admin
+
+Depois de iniciar Docker e aplicar a migration, compile a API em `api/` com `npm run build`. Em seguida, crie o primeiro convite em um terminal interativo nessa pasta com `npm run admin:bootstrap`. Informe o nome real completo e o e-mail, confira que o banco indicado por `DATABASE_URL` é o banco desejado e confirme digitando `CRIAR ADMIN`. O comando imprime o link uma vez; abra-o ou envie-o diretamente ao Admin convidado. O link expira em 24 horas. O Admin confirma o nome, define o nome de usuário e a senha na página própria de aceite e, em seguida, entra pela tela `/gestao/login`. Não há envio automático de e-mail.
+
+Em desenvolvimento local, `MANAGEMENT_ORIGIN` pode ser definido em `api/.env` como `http://localhost:4175`; se estiver ausente, a API usa essa origem local como padrão. A gestão usa o proxy do Vite, portanto o navegador chama `/api/v1` na própria origem. Em produção, defina `MANAGEMENT_ORIGIN` com a origem HTTPS exata da gestão. Não publique nem registre o link de convite ou a senha.
 
 ## Banco, migrations e seed
 
@@ -145,4 +151,3 @@ Na pasta `api/`, já estão disponíveis `npm run lint`, `npm test`, `npm run te
 Swagger/OpenAPI ficará disponível apenas em desenvolvimento, em /api/docs.
 docs/CONTRATO-API.md é a referência humana do contrato, e docs/MODELO-DADOS.md
 documenta o modelo e as regras de persistência.
-

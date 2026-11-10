@@ -1,14 +1,26 @@
 <script setup>
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useManagementSession } from '../stores/session'
+import { AuthApiError } from '../services/authService'
 import { assetUrl, publicSiteUrl } from '../config/navigation'
 import ManagementBrand from '../components/layout/ManagementBrand.vue'
-import DemoLoginForm from '../components/layout/DemoLoginForm.vue'
+import ManagementLoginForm from '../components/layout/ManagementLoginForm.vue'
 const session = useManagementSession()
 const router = useRouter()
-function enter() {
-  session.enter()
-  router.replace('/gestao/painel')
+const error = ref('')
+const route = useRoute()
+async function enter(credentials) {
+  error.value = ''
+  try {
+    await session.login(credentials)
+    await router.replace('/gestao/painel')
+  } catch (cause) {
+    error.value =
+      cause instanceof AuthApiError && cause.status === 429
+        ? 'Muitas tentativas. Aguarde e tente novamente.'
+        : 'Não foi possível entrar. Confira suas credenciais e tente novamente.'
+  }
 }
 </script>
 <template>
@@ -39,7 +51,11 @@ function enter() {
             da Vitrine Glauber.
           </p>
         </header>
-        <DemoLoginForm @enter="enter" />
+        <p v-if="route.query.convite === 'aceito'" class="login-success" role="status">
+          A conta foi criada. Entre com o nome de usuário ou e-mail e a senha que definiu.
+        </p>
+        <ManagementLoginForm :loading="session.loading" @submit="enter" />
+        <p v-if="error" class="login-error" role="alert">{{ error }}</p>
         <a :href="publicSiteUrl" class="management-text-link login-back"
           ><q-icon name="arrow_back" aria-hidden="true" /> Voltar para a vitrine
           pública</a
