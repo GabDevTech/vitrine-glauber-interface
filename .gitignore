@@ -6,6 +6,7 @@ out/
 !.env.example
 backups/
 api/storage/uploads/
+api/src/generated/prisma/
 npm-debug.log*
 
 test-results/

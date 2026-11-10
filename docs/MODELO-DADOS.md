@@ -1,6 +1,6 @@
 # Modelo de dados
 
-Status: modelo aprovado para implementação futura. Este documento não cria schema, migrations ou tabelas.
+Status: modelo aprovado e representado em `api/prisma/schema.prisma` e nos arquivos por domínio de `api/prisma/models/`. A migration `20261109_initial_schema` foi aplicada ao PostgreSQL local após backup. O seed demonstrativo está preparado, mas ainda não foi executado.
 
 ## Princípios
 
@@ -110,10 +110,18 @@ ao ser lida e tem retenção inicial de 90 dias.
 - Backups locais usam pg_dump, são ignorados pelo Git e mantêm os sete mais recentes.
   Restauração exige confirmação explícita.
 
+O rascunho Prisma usa `BigInt @id @default(autoincrement())` nas identidades principais e mapeia os modelos para tabelas com nomes em `snake_case`. Campos exigidos apenas para publicação permanecem opcionais no banco para permitir rascunhos incompletos. As tabelas `box_slugs` e `product_slugs` reservam permanentemente endereços já publicados; a unicidade do slug público e a troca de revisões devem ocorrer em transação.
+
+A primeira migration inclui índices de unicidade sem distinção entre maiúsculas/minúsculas para e-mail e usuário; índices parciais que limitam a uma revisão publicada e uma de trabalho por item; restrições `CHECK` para versões, números de box e preço; limite de uma capa por revisão de produto; e gatilhos que impedem edição, exclusão e truncamento da auditoria. Regras que dependem de várias tabelas, como requisitos de publicação, estado do box responsável, categorias ativas, reserva de slugs entre tabelas e limite de cinco imagens, ainda exigem validação transacional na API. Os modelos Prisma e a migration são a estrutura do banco; os registros demonstrativos serão criados apenas no seed autorizado separadamente.
+
 ## Seed e importação do catálogo atual
 
-O catálogo estático em `src/data/catalog.js` será a fonte do seed inicial. O seed é idempotente em desenvolvimento: preserva relações, não cria duplicatas e nunca sobrescreve alterações de gestão. Ele não roda automaticamente em produção. Os IDs numéricos existentes podem ser convertidos para `BIGINT`, mantendo as relações entre produtos e boxes.
+O catálogo estático em `src/data/catalog.js` será a fonte do seed inicial. O seed é idempotente em desenvolvimento: preserva relações, não cria duplicatas e nunca sobrescreve alterações de gestão. Ele recusa execução em produção. Os IDs do catálogo servem apenas para mapear as relações; o PostgreSQL gera os novos IDs `BIGINT`.
 
-Na conversão, o filtro virtual `todos` não vira categoria no banco. Os códigos atuais das categorias são preservados, inclusive `alimentacao`, cujo rótulo é “Sabores da terra”. Números apresentados como `Box 08` são interpretados como o inteiro `8`; preços em reais são convertidos exatamente para centavos. As imagens ilustrativas atuais de boxes tornam-se capas de box, nunca retratos de pessoas. O seed deve localizar os arquivos de imagem existentes, validar os vínculos, conferir contagens e revisar os estados demonstrativos em `gestao/src/data/editorialStatus.js` antes de habilitar o catálogo pela API. A vitrine estática atual mostra itens que a gestão demonstrativa marca como rascunho ou em revisão; essa divergência precisa de conferência explícita para não ocultar itens por surpresa.
+Na conversão, o filtro virtual `todos` não vira categoria no banco. Os códigos atuais das categorias são preservados, inclusive `alimentacao`, cujo rótulo é “Sabores da terra”. Números apresentados como `Box 08` são interpretados como o inteiro `8`; preços em reais são convertidos exatamente para centavos. As imagens ilustrativas atuais de boxes tornam-se capas de box, nunca retratos de pessoas. O seed deve localizar os arquivos de imagem existentes, validar vínculos e conferir contagens antes de habilitar o catálogo pela API.
+
+Para manter a vitrine como está, o seed cria uma revisão publicada para cada um dos 5 boxes e 8 produtos do catálogo estático. Além disso, cria revisões de trabalho demonstrativas para Barro da Serra (`in_review`), Sabores do Sertão (`draft`), Vaso Horizonte (`in_review`) e Bolsa Caminhos (`ready`), conforme `gestao/src/data/editorialStatus.js`. Essas quatro revisões de trabalho começam com os mesmos dados das respectivas revisões publicadas; não representam edições reais nem recebem autoria humana fictícia. A API pública continua exibindo a revisão publicada, inclusive quando houver uma revisão de trabalho.
 
 O IndexedDB da gestão não é apagado nem migrado automaticamente. Uma importação futura será explícita, autenticada, validada, com prévia e confirmação; imagens em Data URL serão convertidas para o armazenamento de mídia.
+
+O script `api/prisma/seed.mjs` confere os quatro códigos reais de categoria, os cinco boxes, os oito produtos, as quatro revisões de trabalho e os arquivos de imagem antes de qualquer gravação. O filtro virtual `todos` fica fora do banco. Em execução autorizada, cada item novo recebe ID `BIGINT` do PostgreSQL; as relações usam um mapa dos IDs originais para os novos IDs, sem depender da sequência gerada. As imagens ilustrativas são convertidas para WebP sem metadados, com dimensão máxima de 1600 px, e armazenadas por chave aleatória em `api/storage/uploads/`; a capa de box não é tratada como retrato. O seed cria também os três códigos de papel, sem contas, senhas ou autoria humana fictícia. Uma nova execução localiza itens já publicados por suas reservas de slug e preserva seus dados; se algum código ou slug esperado não estiver mais presente em um catálogo que já contém dados, ela falha sem recriar registros. O seed ainda não foi executado e não é disparado por migration.

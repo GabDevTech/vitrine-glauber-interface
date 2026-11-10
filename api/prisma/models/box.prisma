@@ -1,0 +1,74 @@
+model Box {
+  id               BigInt            @id @default(autoincrement())
+  boxNumber        Int?              @unique
+  status           ContentStatus     @default(unpublished)
+  version          Int               @default(1)
+  createdByUserId  BigInt?
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+  publishedAt      DateTime?         @db.Timestamptz(3)
+  archivedAt       DateTime?         @db.Timestamptz(3)
+  createdBy        User?             @relation("BoxCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  revisions        BoxRevision[]
+  slugReservations BoxSlug[]
+  productRevisions ProductRevision[] @relation("ProductRevisionBox")
+
+  @@index([status, updatedAt])
+  @@map("boxes")
+}
+
+model BoxSlug {
+  slug             String   @id @db.VarChar(160)
+  boxId            BigInt
+  firstPublishedAt DateTime @default(now()) @db.Timestamptz(3)
+  box              Box      @relation(fields: [boxId], references: [id], onDelete: Restrict)
+
+  @@index([boxId])
+  @@map("box_slugs")
+}
+
+model BoxRevision {
+  id                 BigInt                @id @default(autoincrement())
+  boxId              BigInt
+  number             Int
+  version            Int                   @default(1)
+  status             RevisionStatus        @default(draft)
+  name               String?               @db.VarChar(130)
+  slug               String?               @db.VarChar(160)
+  ownerName          String?               @db.VarChar(130)
+  boxNumber          Int?
+  location           String?               @db.VarChar(180)
+  openingHours       String?               @db.VarChar(180)
+  description        String?               @db.Text
+  story              String?               @db.Text
+  whatsapp           String?               @db.VarChar(30)
+  allowPublicContact Boolean               @default(false)
+  coverMediaId       BigInt?
+  ownerPortraitId    BigInt?
+  createdByUserId    BigInt?
+  createdAt          DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime              @updatedAt @db.Timestamptz(3)
+  publishedAt        DateTime?             @db.Timestamptz(3)
+  supersededAt       DateTime?             @db.Timestamptz(3)
+  box                Box                   @relation(fields: [boxId], references: [id], onDelete: Restrict)
+  createdBy          User?                 @relation("BoxRevisionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  coverMedia         Media?                @relation("BoxCover", fields: [coverMediaId], references: [id], onDelete: Restrict)
+  ownerPortrait      Media?                @relation("BoxPortrait", fields: [ownerPortraitId], references: [id], onDelete: Restrict)
+  categories         BoxRevisionCategory[]
+
+  @@unique([boxId, number])
+  @@index([boxId, status])
+  @@index([slug])
+  @@map("box_revisions")
+}
+
+model BoxRevisionCategory {
+  boxRevisionId BigInt
+  categoryId    BigInt
+  boxRevision   BoxRevision @relation(fields: [boxRevisionId], references: [id], onDelete: Restrict)
+  category      Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@id([boxRevisionId, categoryId])
+  @@index([categoryId])
+  @@map("box_revision_categories")
+}

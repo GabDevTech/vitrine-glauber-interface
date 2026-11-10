@@ -1,6 +1,6 @@
 # Guia do backend
 
-Status: PostgreSQL local validado e estrutura inicial do NestJS criada. Prisma, schema, migrations e rotas da API ainda não foram implementados.
+Status: PostgreSQL local validado e primeira migration aplicada em desenvolvimento após backup. O seed demonstrativo foi preparado e conferido sem acessar o banco, mas ainda não foi executado; as rotas planejadas sob `/api/v1` ainda não foram implementadas.
 
 ## Arquitetura local
 
@@ -48,25 +48,30 @@ api/
 └── storage/uploads/       # pasta local futura, ignorada pelo Git
 ~~~
 
-O backend inicial usa TypeScript estrito, npm, Node 24 e NestJS. Prisma será integrado na etapa do banco. ESLint, Prettier e Jest se aplicam apenas a `api/`; os frontends não serão reformatados por consequência.
+O backend inicial usa TypeScript estrito, npm, Node 24 e NestJS. Prisma já está instalado para modelagem; a integração com as regras da API virá na etapa do banco. ESLint, Prettier e Jest se aplicam apenas a `api/`; os frontends não serão reformatados por consequência.
+
+## Prisma e primeira migration
+
+O Prisma CLI, Client e adaptador PostgreSQL estão alinhados na versão `7.10.1`. A configuração fica em `api/prisma.config.ts`, que lê todos os arquivos `.prisma` da pasta `api/prisma/`. O arquivo `api/prisma/schema.prisma` define o gerador e o PostgreSQL; `api/prisma/models/` organiza enums e modelos por domínio. Esses modelos descrevem tabelas e relações, não criam os boxes e produtos demonstrativos: os registros serão tratados no seed. As migrations versionadas ficam em `api/prisma/migrations/`. O exemplo de conexão está em `api/.env.example`. A URL real deve ficar em `api/.env`, ignorado pelo Git, usando a mesma senha do `POSTGRES_PASSWORD` no `.env` da raiz. O Client gerado fica em `api/src/generated/prisma/`, também ignorado pelo Git.
+
+Na pasta `api/`, `npm exec prisma -- validate` confere o schema e `npm exec prisma -- generate` gera somente o Client. Esses comandos requerem `DATABASE_URL` no ambiente, mas não criam tabelas. A migration `20261109_initial_schema` foi aplicada ao PostgreSQL local após um backup `pg_dump` em `backups/`, ignorado pelo Git. A verificação encontrou 18 tabelas do projeto, 13 restrições `CHECK`, dois gatilhos da auditoria e nenhum registro de box ou produto. O seed continua pendente e exige autorização separada; as restrições SQL e as regras que serão implementadas na API estão registradas em `docs/MODELO-DADOS.md`.
 
 ## Ambiente e segredos
 
 - Arquivos .env reais são ignorados pelo Git.
 - .env.example contém apenas valores fictícios e nomes de variáveis.
 - VITE_* expõe somente informações públicas, como URL da API.
-- Segredos, cookies, hashes, tokens, senhas e credenciais não entram em código,
-  documentação versionada ou logs.
+- Segredos, cookies, hashes, tokens, senhas e credenciais não entram em código, documentação versionada ou logs.
 
 ## Banco, migrations e seed
 
 Prisma controla o schema e migrations versionadas. Antes de qualquer migration, importação ou teste que altere dados, será criado backup por pg_dump. Migrations destrutivas, resets, restaurações e exclusões dependem de autorização explícita.
 
-O seed inicial parte de src/data/catalog.js, é idempotente e não sobrescreve dados de gestão. PostgreSQL só se torna fonte oficial depois da conferência do seed e da integração dos frontends.
+O seed demonstrativo em `api/prisma/seed.mjs` lê `src/data/catalog.js` e `gestao/src/data/editorialStatus.js`. O comando `npm run seed:demo:check`, executado em `api/`, confere a fonte, as relações e os arquivos de imagem sem acessar o banco. A execução posterior exige `DATABASE_URL`, `SEED_DEMO_CONFIRM=vitrine-glauber`, um Client Prisma gerado e compilado e o comando explícito `prisma db seed`; ela ainda depende de aprovação. O seed preserva categorias e itens já encontrados por seus códigos ou slugs publicados, não sobrescreve alterações de gestão, não cria contas fictícias e não roda automaticamente com migrations. Para novos itens, cria arquivos WebP em `api/storage/uploads/` com chaves aleatórias e registros de mídia correspondentes. Antes da execução, será feito novo backup; depois, serão conferidos contagens, revisões e relações. PostgreSQL só se torna fonte oficial depois dessa conferência e da integração dos frontends.
 
 ## Mídias, logs e saúde
 
-Quando o módulo de mídia for implementado, os arquivos processados ficarão em `api/storage/uploads/`, pasta local no Windows e ignorada pelo Git. A pasta ainda não existe; será criada junto ao módulo. O volume `postgres_data` do Compose contém apenas o banco. Se a API vier a rodar em contêiner, a persistência dos uploads exigirá configuração própria. O PostgreSQL guardará somente metadados e relações. O endpoint `/api/v1/health` informará a saúde da API e do banco sem revelar detalhes internos.
+Os arquivos processados ficarão em `api/storage/uploads/`, pasta local no Windows e ignorada pelo Git. Ela ainda não existe: o seed autorizado ou o futuro módulo de mídia a criará quando precisar gravar arquivos. O volume `postgres_data` do Compose contém apenas o banco. Se a API vier a rodar em contêiner, a persistência dos uploads exigirá configuração própria. O PostgreSQL guardará somente metadados e relações. O endpoint `/api/v1/health` informará a saúde da API e do banco sem revelar detalhes internos.
 
 Logs incluem método, rota, status, duração e requestId. Eles não registram segredos ou dados de autenticação. O cache público em memória é curto e opcional; em
 desenvolvimento pode ficar desabilitado.
