@@ -5,12 +5,20 @@ export function usePageMeta(source) {
     const meta = typeof source === 'function' ? source() : source
     if (!meta) return
     document.title = meta.title ? `${meta.title} | Vitrine Glauber` : 'Vitrine Glauber'
-    setMeta('description', meta.description || 'Descubra boxes, produtos e empreendedores do Centro Cultural Glauber Rocha.')
+    setMeta(
+      'description',
+      meta.description ||
+        'Descubra boxes, produtos e empreendedores do Centro Cultural Glauber Rocha.',
+    )
     setProperty('og:title', document.title)
     setProperty('og:description', meta.description || '')
     setProperty('og:type', 'website')
     setProperty('og:url', window.location.href)
-    if (meta.image) setProperty('og:image', new URL(meta.image, window.location.origin).href)
+    setProperty(
+      'og:image',
+      new URL(meta.image || '/images/hero-feira-cultural.webp', window.location.origin)
+        .href,
+    )
   })
 }
 
@@ -33,4 +41,3 @@ function setProperty(property, content) {
   }
   element.setAttribute('content', content)
 }
-

@@ -1,0 +1,71 @@
+model Product {
+  id               BigInt            @id @default(autoincrement())
+  status           ContentStatus     @default(unpublished)
+  version          Int               @default(1)
+  createdByUserId  BigInt?
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+  publishedAt      DateTime?         @db.Timestamptz(3)
+  archivedAt       DateTime?         @db.Timestamptz(3)
+  createdBy        User?             @relation("ProductCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  revisions        ProductRevision[]
+  slugReservations ProductSlug[]
+
+  @@index([status, updatedAt])
+  @@map("products")
+}
+
+model ProductSlug {
+  slug             String   @id @db.VarChar(160)
+  productId        BigInt
+  firstPublishedAt DateTime @default(now()) @db.Timestamptz(3)
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([productId])
+  @@map("product_slugs")
+}
+
+model ProductRevision {
+  id              BigInt                 @id @default(autoincrement())
+  productId       BigInt
+  number          Int
+  version         Int                    @default(1)
+  status          RevisionStatus         @default(draft)
+  name            String?                @db.VarChar(130)
+  slug            String?                @db.VarChar(160)
+  boxId           BigInt?
+  categoryId      BigInt?
+  description     String?                @db.Text
+  priceCents      Int?
+  createdByUserId BigInt?
+  createdAt       DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime               @updatedAt @db.Timestamptz(3)
+  publishedAt     DateTime?              @db.Timestamptz(3)
+  supersededAt    DateTime?              @db.Timestamptz(3)
+  product         Product                @relation(fields: [productId], references: [id], onDelete: Restrict)
+  box             Box?                   @relation("ProductRevisionBox", fields: [boxId], references: [id], onDelete: Restrict)
+  category        Category?              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy       User?                  @relation("ProductRevisionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  media           ProductRevisionMedia[]
+
+  @@unique([productId, number])
+  @@index([productId, status])
+  @@index([slug])
+  @@index([boxId])
+  @@index([categoryId])
+  @@map("product_revisions")
+}
+
+model ProductRevisionMedia {
+  productRevisionId BigInt
+  mediaId           BigInt
+  position          Int
+  isCover           Boolean         @default(false)
+  productRevision   ProductRevision @relation(fields: [productRevisionId], references: [id], onDelete: Restrict)
+  media             Media           @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([productRevisionId, mediaId])
+  @@unique([productRevisionId, position])
+  @@index([mediaId])
+  @@map("product_revision_media")
+}

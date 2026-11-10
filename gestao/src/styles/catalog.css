@@ -1,0 +1,162 @@
+/* Estados editoriais. O texto explica o estado, além da cor. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  border-radius: 99px;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.status-badge > span {
+  height: 5px;
+  width: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.status-draft {
+  background: var(--soft);
+  color: var(--muted);
+}
+.status-review {
+  background: #fff3cd;
+  color: #705000;
+}
+.status-ready {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.status-published {
+  background: #e1f2e8;
+  color: #206244;
+}
+.body--dark .status-review {
+  background: #4b3b1e;
+  color: #ffe0a0;
+}
+.body--dark .status-published {
+  background: #1e3e33;
+  color: #b1e6c4;
+}
+
+/* Busca, filtros e tabela responsiva. */
+.record-filters {
+  --filter-count: 2;
+  padding: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.record-filters.has-box-filter {
+  --filter-count: 3;
+}
+.filter-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) repeat(
+      var(--filter-count),
+      minmax(140px, 1fr)
+    );
+  gap: 14px;
+}
+.filter-extra {
+  display: contents;
+}
+.filter-toggle {
+  display: none;
+}
+.filter-feedback {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 44px;
+  margin-top: 14px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.record-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.record-table th,
+.record-table td {
+  padding: 18px 24px;
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+}
+.record-table thead th {
+  font-weight: 500;
+  background: var(--soft);
+  color: var(--muted);
+  padding-block: 12px;
+  font-size: 0.75rem;
+}
+.record-table thead th:first-child {
+  width: 38%;
+}
+.record-table thead th:nth-child(2) {
+  width: 22%;
+}
+.record-table thead th:nth-child(3) {
+  width: 25%;
+}
+.record-table tbody tr + tr {
+  border-top: 1px solid var(--line);
+}
+.record-table tbody tr:hover {
+  background: var(--paper);
+}
+.record-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.record-identity > img {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: none;
+}
+.record-identity > div {
+  min-width: 0;
+}
+.record-identity strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.record-table small {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.record-price {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.record-table .record-owner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.record-owner img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.record-table .actions-cell {
+  text-align: right;
+}
+.record-table .q-btn {
+  padding-inline: 13px;
+}

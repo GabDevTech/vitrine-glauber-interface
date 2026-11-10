@@ -1,0 +1,35 @@
+model AuditEvent {
+  id           BigInt   @id @default(autoincrement())
+  actorUserId  BigInt?
+  action       String   @db.VarChar(80)
+  resourceType String   @db.VarChar(40)
+  resourceId   BigInt?
+  occurredAt   DateTime @default(now()) @db.Timestamptz(3)
+  requestId    String?  @db.VarChar(80)
+  summary      String   @db.Text
+  changes      Json?
+  reason       String?  @db.Text
+  actor        User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([occurredAt])
+  @@index([resourceType, resourceId, occurredAt])
+  @@map("audit_events")
+}
+
+model Notification {
+  id              BigInt    @id @default(autoincrement())
+  recipientUserId BigInt
+  actorUserId     BigInt?
+  type            String    @db.VarChar(80)
+  title           String    @db.VarChar(160)
+  message         String    @db.Text
+  resourceType    String?   @db.VarChar(40)
+  resourceId      BigInt?
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  readAt          DateTime? @db.Timestamptz(3)
+  recipient       User      @relation("NotificationRecipient", fields: [recipientUserId], references: [id], onDelete: Restrict)
+  actor           User?     @relation("NotificationActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([recipientUserId, readAt, createdAt])
+  @@map("notifications")
+}

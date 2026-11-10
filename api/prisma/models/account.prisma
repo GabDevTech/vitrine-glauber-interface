@@ -1,0 +1,120 @@
+enum UserStatus {
+  pending_invitation
+  active
+  blocked
+  invitation_expired
+  removed
+}
+
+enum RoleCode {
+  editor
+  moderator
+  admin
+}
+
+enum ThemePreference {
+  system
+  light
+  dark
+}
+
+model User {
+  id                   BigInt            @id @default(autoincrement())
+  username             String?           @unique @db.VarChar(30)
+  realName             String            @db.VarChar(130)
+  email                String            @unique @db.VarChar(254)
+  passwordHash         String?           @db.Text
+  status               UserStatus        @default(pending_invitation)
+  lastActivityAt       DateTime?         @db.Timestamptz(3)
+  createdAt            DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime          @updatedAt @db.Timestamptz(3)
+  activatedAt          DateTime?         @db.Timestamptz(3)
+  blockedAt            DateTime?         @db.Timestamptz(3)
+  removedAt            DateTime?         @db.Timestamptz(3)
+  roles                UserRole[]
+  preferences          UserPreference?
+  invitations          Invitation[]      @relation("InvitedUser")
+  invitationsCreated   Invitation[]      @relation("InvitationCreator")
+  sessions             Session[]
+  categoriesCreated    Category[]        @relation("CategoryCreator")
+  boxesCreated         Box[]             @relation("BoxCreator")
+  boxRevisionsCreated  BoxRevision[]     @relation("BoxRevisionCreator")
+  productsCreated      Product[]         @relation("ProductCreator")
+  productRevisionsMade ProductRevision[] @relation("ProductRevisionCreator")
+  mediaCreated         Media[]           @relation("MediaCreator")
+  mediaDeleted         Media[]           @relation("MediaDeleter")
+  auditEvents          AuditEvent[]      @relation("AuditActor")
+  notifications        Notification[]    @relation("NotificationRecipient")
+  notificationsCaused  Notification[]    @relation("NotificationActor")
+
+  @@index([status])
+  @@map("users")
+}
+
+model Role {
+  id        BigInt     @id @default(autoincrement())
+  code      RoleCode   @unique
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId    BigInt
+  roleId    BigInt
+  grantedAt DateTime @default(now()) @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model UserPreference {
+  userId        BigInt          @id
+  theme         ThemePreference @default(system)
+  highContrast  Boolean         @default(false)
+  textSize      Int             @default(100)
+  reducedMotion Boolean         @default(false)
+  updatedAt     DateTime        @updatedAt @db.Timestamptz(3)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("user_preferences")
+}
+
+model Invitation {
+  id              BigInt    @id @default(autoincrement())
+  userId          BigInt
+  tokenHash       String    @unique @db.VarChar(128)
+  expiresAt       DateTime  @db.Timestamptz(3)
+  usedAt          DateTime? @db.Timestamptz(3)
+  revokedAt       DateTime? @db.Timestamptz(3)
+  attemptCount    Int       @default(0)
+  createdByUserId BigInt?
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  user            User      @relation("InvitedUser", fields: [userId], references: [id], onDelete: Restrict)
+  createdBy       User?     @relation("InvitationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([userId, expiresAt])
+  @@map("invitations")
+}
+
+model Session {
+  id                BigInt    @id @default(autoincrement())
+  userId            BigInt
+  tokenHash         String    @unique @db.VarChar(128)
+  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
+  lastActivityAt    DateTime  @default(now()) @db.Timestamptz(3)
+  idleExpiresAt     DateTime  @db.Timestamptz(3)
+  absoluteExpiresAt DateTime  @db.Timestamptz(3)
+  revokedAt         DateTime? @db.Timestamptz(3)
+  revocationReason  String?   @db.VarChar(80)
+  ipHash            String?   @db.VarChar(128)
+  userAgentSummary  String?   @db.VarChar(180)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, revokedAt, idleExpiresAt])
+  @@index([absoluteExpiresAt])
+  @@map("sessions")
+}

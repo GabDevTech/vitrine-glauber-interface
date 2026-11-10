@@ -1,23 +1,50 @@
 <script setup>
-import { onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useCatalogStore } from '../stores/catalog'
+import { onMounted } from 'vue'
+import { useCatalogFilters } from '../composables/useCatalogFilters'
 import { usePageMeta } from '../composables/usePageMeta'
 import BoxCard from '../components/BoxCard.vue'
 import CatalogFilters from '../components/CatalogFilters.vue'
 import CatalogState from '../components/CatalogState.vue'
-
-const props = defineProps({ categorySlug: { type: String, default: '' } })
-const catalog = useCatalogStore()
-const route = useRoute()
-const router = useRouter()
-function readRoute() { catalog.query = String(route.query.busca || ''); catalog.activeCategory = props.categorySlug || String(route.query.categoria || 'todos') }
-function updateRoute() { router.replace({ path: '/boxes', query: { ...(catalog.query.trim() && { busca: catalog.query.trim() }), ...(catalog.activeCategory !== 'todos' && { categoria: catalog.activeCategory }) } }) }
-function clear() { catalog.clearFilters(); updateRoute() }
-usePageMeta({ title: 'Todos os boxes', description: 'Encontre os boxes e empreendedores da Vitrine Glauber por nome ou categoria.' })
-onMounted(() => { readRoute(); catalog.loadCatalog() })
-watch(() => [route.query.busca, route.query.categoria, props.categorySlug], readRoute)
+const { catalog, query, category, sort, results, update, clear } =
+  useCatalogFilters('boxes')
+usePageMeta({
+  title: 'Explore os boxes',
+  description:
+    'Encontre artesanato, sabores, moda e bem-estar. Conheça quem faz o Glauber acontecer.',
+})
+onMounted(() => catalog.loadCatalog())
 </script>
-
-<template><q-page class="listing-page page-container"><header class="page-intro"><h1>Todos os boxes</h1><p>Conheça quem produz, cria e movimenta o Centro Cultural Glauber Rocha.</p></header><CatalogFilters :query="catalog.query" :category="catalog.activeCategory" :categories="catalog.categories" :result-count="catalog.filteredBoxes.length" result-label="boxes" @update:query="catalog.query = $event; updateRoute()" @update:category="catalog.activeCategory = $event; updateRoute()" @clear="clear" /><CatalogState :loading="catalog.loading" :error="catalog.error" :empty="!catalog.filteredBoxes.length" @retry="catalog.loadCatalog({ force: true })" @clear="clear"><div class="box-grid listing-grid"><BoxCard v-for="box in catalog.filteredBoxes" :key="box.id" :box="box" /></div></CatalogState></q-page></template>
-
+<template>
+  <q-page class="page-container listing-page">
+    <header class="page-intro">
+      <router-link class="back-link" to="/"
+        ><q-icon name="arrow_back" /> Início</router-link
+      >
+      <h1>Encontre seu próximo favorito.</h1>
+      <p>Por trás de cada box, uma pessoa e uma história para conhecer.</p>
+    </header>
+    <CatalogFilters
+      :query="query"
+      :category="category"
+      :sort="sort"
+      :categories="catalog.categories"
+      :result-count="results.length"
+      @update:query="update('busca', $event)"
+      @update:category="update('categoria', $event)"
+      @update:sort="update('ordem', $event)"
+      @clear="clear"
+    />
+    <CatalogState
+      :loading="!catalog.loaded && !catalog.error"
+      :error="catalog.error"
+      :empty="!results.length"
+      @retry="catalog.loadCatalog({ force: true })"
+      @clear="clear"
+      ><div class="box-grid">
+        <BoxCard v-for="box in results" :key="box.id" :box="box" /></div
+    ></CatalogState>
+    <p class="catalog-note">
+      Expositores e informações demonstrativos. Fotografias ilustrativas.
+    </p>
+  </q-page>
+</template>

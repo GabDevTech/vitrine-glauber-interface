@@ -1,0 +1,13 @@
+enum ContentStatus {
+  unpublished
+  published
+  archived
+}
+
+enum RevisionStatus {
+  draft
+  in_review
+  ready
+  published
+  superseded
+}
