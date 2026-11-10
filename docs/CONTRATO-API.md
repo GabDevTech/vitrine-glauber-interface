@@ -1,6 +1,6 @@
 # Contrato da API
 
-Status: contrato planejado. A estrutura inicial do NestJS existe, mas estas rotas ainda não foram implementadas.
+Status: contrato em implementação. `GET /api/v1/health` já responde com a disponibilidade da API e do PostgreSQL; as demais rotas ainda não foram implementadas.
 
 ## Objetivo e convenções
 
@@ -53,7 +53,9 @@ GET /api/v1/products/:slug
 GET /api/v1/media/:id
 ~~~
 
-Elas não exigem autenticação e retornam somente revisões publicadas, categorias ativas e mídias públicas. Boxes podem filtrar por qualquer categoria vinculada; produtos filtram por categoria e box. Busca de box considera nome, responsável, número e categorias; busca de produto considera nome, box e categoria. Produtos sem preço ficam no fim das ordenações por preço.
+`GET /api/v1/health` responde `200` com `{ "data": { "status": "ok", "database": "ok" } }` quando a consulta ao banco funciona. Se a consulta falhar, responde `503` com `code: "SERVICE_UNAVAILABLE"`, mensagem genérica e `requestId`, sem expor detalhes da conexão. A rota não lê nem modifica registros do catálogo.
+
+As rotas públicas de catálogo e mídia não exigirão autenticação e retornarão somente revisões publicadas, categorias ativas e mídias públicas. Boxes poderão filtrar por qualquer categoria vinculada; produtos filtrarão por categoria e box. Busca de box considera nome, responsável, número e categorias; busca de produto considera nome, box e categoria. Produtos sem preço ficam no fim das ordenações por preço.
 
 O detalhe público usa sempre o slug da revisão publicada atual. Durante uma edição, nome e slug propostos ficam privados. Se a publicação mudar o slug, a rota antiga retorna `404`, sem redirecionamento; um slug publicado anteriormente não pode ser reutilizado por outro conteúdo. Mídias só são públicas enquanto o conteúdo relacionado estiver visível na vitrine: produtos de box arquivado também perdem o acesso público às imagens. A mídia pública de box pode ser a capa e, se houver, o retrato do responsável; a API nunca apresenta a capa ilustrativa como retrato.
 

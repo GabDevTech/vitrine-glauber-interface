@@ -1,6 +1,6 @@
 # API da Vitrine Glauber
 
-O backend NestJS está em construção. A primeira migration já foi aplicada ao PostgreSQL local; o seed demonstrativo em `prisma/seed.mjs` foi preparado, mas ainda não executado. Em `api/`, `npm run seed:demo:check` valida o catálogo e as imagens sem acessar o banco. A execução do seed exige aprovação separada. Consulte [Guia do backend](../docs/GUIA-BACKEND.md) e [Modelo de dados](../docs/MODELO-DADOS.md) para o estado atual e as regras aprovadas.
+O backend NestJS está em construção. A primeira migration e o seed demonstrativo em `prisma/seed.mjs` já foram aplicados ao PostgreSQL local após backups. O arquivo local `api/.env`, ignorado pelo Git, fornece `DATABASE_URL` à API; `api/.env.example` contém apenas valores fictícios. Com o PostgreSQL disponível, execute `npm run start` nesta pasta e consulte `http://localhost:3000/api/v1/health`; a rota lê a saúde do banco e não altera dados. `npm run seed:demo:check` valida a fonte do catálogo e as imagens sem acessar o banco. As rotas de catálogo e gestão ainda não foram implementadas, e os frontends continuam com dados locais. Consulte [Guia do backend](../docs/GUIA-BACKEND.md) e [Modelo de dados](../docs/MODELO-DADOS.md) para o estado atual e as regras aprovadas.
 
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>

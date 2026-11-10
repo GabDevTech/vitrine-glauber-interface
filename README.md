@@ -1,6 +1,6 @@
 # Vitrine Glauber
 
-Site público para descobrir boxes e produtos do Centro Cultural Glauber Rocha, salvar favoritos e planejar uma visita. A vitrine usa Vue 3, JavaScript, Quasar 2, Vite 7, Pinia e Vue Router. A área de gestão fica em `gestao/`; a estrutura NestJS/PostgreSQL e a primeira migration já existem, e o seed demonstrativo está preparado, mas ainda não foi executado. A API funcional continua em desenvolvimento.
+Site público para descobrir boxes e produtos do Centro Cultural Glauber Rocha, salvar favoritos e planejar uma visita. A vitrine usa Vue 3, JavaScript, Quasar 2, Vite 7, Pinia e Vue Router. A área de gestão fica em `gestao/`; a estrutura NestJS/PostgreSQL, a primeira migration e o seed demonstrativo já foram aplicados ao banco local. A API já expõe uma rota de saúde, mas as rotas do catálogo e da gestão continuam em desenvolvimento; os frontends ainda usam seus dados locais.
 
 ## Começar
 
