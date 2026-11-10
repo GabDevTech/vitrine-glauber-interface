@@ -1,0 +1,61 @@
+/* Identidade oficial: Figma 0g8UyUy7EXtzs0sLhXhoNd, prancha 1:2. */
+:root {
+  --brand-blue: #1746c8;
+  --blue: #1746c8;
+  --navy: #142d59;
+  --pink: #ec4899;
+  --yellow: #ffd43b;
+  --paper: #f5f7fa;
+  --surface: #ffffff;
+  --soft: #f0f3f8;
+  --blue-soft: #eaf0ff;
+  --text: #142d59;
+  --muted: #53627a;
+  --line: #dce2eb;
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --radius-control: 9px;
+  --radius-card: 18px;
+  --radius-image: 16px;
+  --space-section: clamp(1.5rem, 3vw, 2.25rem);
+  --shadow-card: 0 12px 32px rgb(20 45 89 / 8%);
+  --shadow-overlay: 0 16px 48px rgb(20 45 89 / 15%);
+  --motion-fast: 140ms;
+  --motion-ui: 260ms;
+  --motion-view: 220ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --content-width: 1200px;
+  color-scheme: light;
+}
+body.body--dark {
+  --paper: #101f38;
+  --surface: #162943;
+  --soft: #1c3453;
+  --blue-soft: #233e65;
+  --text: #f3f6ff;
+  --muted: #bac9e0;
+  --line: #385170;
+  --blue: #9ab9ff;
+  --q-primary: #1746c8;
+  --shadow-card: 0 12px 32px rgb(0 0 0 / 20%);
+  --shadow-overlay: 0 16px 48px rgb(0 0 0 / 32%);
+  color-scheme: dark;
+}
+.high-contrast body {
+  --paper: #fff;
+  --surface: #fff;
+  --soft: #f5f5f5;
+  --text: #000;
+  --muted: #222;
+  --line: #555;
+  --blue: #143bb1;
+}
+.high-contrast body.body--dark {
+  --paper: #000;
+  --surface: #000;
+  --soft: #151515;
+  --text: #fff;
+  --muted: #fff;
+  --line: #bbb;
+  --blue: #b9d0ff;
+}

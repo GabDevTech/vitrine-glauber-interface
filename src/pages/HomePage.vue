@@ -1,31 +1,77 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted } from 'vue'
 import { useCatalogStore } from '../stores/catalog'
 import { usePageMeta } from '../composables/usePageMeta'
-import BoxCard from '../components/BoxCard.vue'
-import ProductCard from '../components/ProductCard.vue'
-import CatalogState from '../components/CatalogState.vue'
 import HomeHero from '../components/HomeHero.vue'
 import HomeStory from '../components/HomeStory.vue'
 import HomeVisit from '../components/HomeVisit.vue'
-
+import CategoryNavigation from '../components/home/CategoryNavigation.vue'
+import SectionHeading from '../components/shared/SectionHeading.vue'
+import BoxCard from '../components/BoxCard.vue'
+import ProductCard from '../components/ProductCard.vue'
+import CatalogState from '../components/CatalogState.vue'
 const catalog = useCatalogStore()
-const router = useRouter()
-const search = ref('')
-const featuredBoxes = computed(() => catalog.boxes.slice(0, 3))
-const featuredProducts = computed(() => catalog.products.slice(0, 4))
-function submitSearch() { router.push({ path: '/boxes', query: search.value.trim() ? { busca: search.value.trim() } : {} }) }
-usePageMeta({ description: 'Descubra boxes, produtos e empreendedores do Centro Cultural Glauber Rocha em Vitória da Conquista.' })
+const featuredProducts = computed(() =>
+  [1, 5, 3, 8]
+    .map((id) => catalog.products.find((item) => item.id === id))
+    .filter(Boolean),
+)
+usePageMeta({
+  description:
+    'Descubra produtos, boxes e histórias do Centro Cultural Glauber Rocha. Conheça por aqui e viva de perto em Vitória da Conquista.',
+})
 onMounted(() => catalog.loadCatalog())
 </script>
-
-<template><q-page>
-  <HomeHero />
-  <section class="discovery-section page-container"><nav class="catalog-portals" aria-label="Explorar a vitrine"><router-link to="/boxes" class="catalog-portal catalog-portal-boxes"><q-icon name="storefront" /><span><strong>Conhecer os boxes</strong><small>Histórias, contatos e localização</small></span><q-icon name="arrow_forward" /></router-link><router-link to="/produtos" class="catalog-portal catalog-portal-products"><q-icon name="shopping_bag" /><span><strong>Descobrir produtos</strong><small>Artesanato, sabores, moda e bem-estar</small></span><q-icon name="arrow_forward" /></router-link></nav><div class="search-panel"><div><h2>Encontre um box</h2><p>Busque pelo nome, produto ou por quem faz.</p></div><q-form class="home-search" @submit.prevent="submitSearch"><q-input v-model="search" outlined label="Buscar boxes"><template #prepend><q-icon name="search" /></template><template #append><q-btn flat round type="submit" icon="arrow_forward" aria-label="Buscar boxes" /></template></q-input></q-form></div><nav class="category-scroll" aria-label="Categorias de boxes"><q-btn v-for="category in catalog.categories.filter((item) => item.id !== 'todos')" :key="category.id" outline color="secondary" no-caps :icon="category.icon" :label="category.label" :to="{ path: '/boxes', query: { categoria: category.id } }" /></nav></section>
-  <section class="catalog-section page-container"><div class="section-heading section-heading-action"><div><h2>Boxes para conhecer</h2><p>Uma seleção de negócios locais para descobrir antes da visita.</p></div><q-btn outline color="primary" no-caps label="Ver todos os boxes" to="/boxes" /></div><CatalogState :loading="catalog.loading" :error="catalog.error" :empty="!featuredBoxes.length" @retry="catalog.loadCatalog({ force: true })"><div class="box-grid"><BoxCard v-for="box in featuredBoxes" :key="box.id" :box="box" /></div></CatalogState></section>
-  <section class="products-section page-container"><div class="section-heading section-heading-action"><div><h2>Produtos em destaque</h2><p>Valores e disponibilidade são confirmados diretamente com o expositor.</p></div><q-btn outline color="primary" no-caps label="Ver todos os produtos" to="/produtos" /></div><CatalogState :loading="catalog.loading" :error="catalog.error" :empty="!featuredProducts.length" @retry="catalog.loadCatalog({ force: true })"><div class="product-grid"><ProductCard v-for="product in featuredProducts" :key="product.id" :product="product" /></div></CatalogState></section>
-  <HomeStory />
-  <HomeVisit />
-</q-page></template>
-
+<template>
+  <q-page>
+    <HomeHero />
+    <section class="page-container section-space category-section">
+      <SectionHeading title="Encontre o que combina com você" /><CategoryNavigation
+        :categories="catalog.categories"
+      />
+    </section>
+    <section class="page-container section-space">
+      <SectionHeading
+        title="Gente que faz o Glauber"
+        description="Conheça os espaços e as pessoas por trás de cada criação."
+        to="/boxes"
+        link-label="Explorar todos os boxes"
+      /><CatalogState
+        :loading="!catalog.loaded && !catalog.error"
+        :error="catalog.error"
+        @retry="catalog.loadCatalog({ force: true })"
+        ><div class="box-grid">
+          <BoxCard
+            v-for="box in catalog.boxes.slice(0, 3)"
+            :key="box.id"
+            :box="box"
+          /></div
+      ></CatalogState>
+    </section>
+    <section class="page-container section-space products-section">
+      <SectionHeading
+        title="Pequenos achados, grandes histórias"
+        description="Uma seleção para despertar a vontade de conhecer de perto."
+        to="/produtos"
+        link-label="Ver todos os produtos"
+      /><CatalogState
+        :loading="!catalog.loaded && !catalog.error"
+        :error="catalog.error"
+        @retry="catalog.loadCatalog({ force: true })"
+        ><div class="product-grid">
+          <ProductCard
+            v-for="product in featuredProducts"
+            :key="product.id"
+            :product="product"
+          />
+        </div>
+        <p class="catalog-note">
+          Catálogo demonstrativo. Imagens ilustrativas; valores e disponibilidade sujeitos
+          à confirmação.
+        </p></CatalogState
+      >
+    </section>
+    <HomeStory />
+    <HomeVisit />
+  </q-page>
+</template>

@@ -1,0 +1,146 @@
+/*
+ * Movimento compartilhado.
+ * Abertura da janela: só no início. Navegação e controles: feedback curto.
+ * Nada depende de animação para aparecer ou funcionar.
+ */
+.reduce-motion {
+  scroll-behavior: auto !important;
+}
+.route-enter-active {
+  transition: opacity var(--motion-view) var(--ease-out);
+}
+.route-leave-active {
+  transition: opacity var(--motion-fast) ease-out;
+}
+.route-enter-from,
+.route-leave-to {
+  opacity: 0;
+}
+
+.menu-enter-active {
+  transition:
+    opacity var(--motion-ui),
+    transform var(--motion-ui) var(--ease-out);
+}
+.menu-leave-active {
+  transition:
+    opacity var(--motion-fast),
+    transform var(--motion-fast) ease-in;
+}
+.menu-enter-from,
+.menu-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.985);
+}
+
+@keyframes window-open {
+  from {
+    clip-path: inset(5% 5% 5% 12% round 90px 14px 14px 14px);
+    transform: scale(1.025);
+  }
+  to {
+    clip-path: inset(0);
+    transform: scale(1);
+  }
+}
+@keyframes window-invitation {
+  from {
+    transform: translateX(-12px);
+    opacity: 0.65;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes favorite-confirm {
+  0% {
+    transform: scale(0.82);
+  }
+  50% {
+    transform: scale(1.16);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.q-btn {
+  touch-action: manipulation;
+  transition:
+    background-color var(--motion-fast),
+    box-shadow var(--motion-ui),
+    transform var(--motion-fast) var(--ease-out);
+}
+.q-btn:active {
+  transform: scale(0.98);
+}
+.text-link .q-icon,
+.back-link .q-icon {
+  transition: transform var(--motion-ui) var(--ease-out);
+}
+.text-link:hover .q-icon {
+  transform: translateX(3px);
+}
+.back-link:hover .q-icon {
+  transform: translateX(-3px);
+}
+
+/* Scrollbar acompanha o tema; a preferência do usuário segue prioritária. */
+html {
+  scrollbar-color: var(--muted) var(--paper);
+}
+body {
+  -webkit-tap-highlight-color: rgb(23 70 200 / 12%);
+}
+.q-dialog__inner {
+  overscroll-behavior: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-enter-active,
+  .route-leave-active,
+  .menu-enter-active,
+  .menu-leave-active {
+    transition: none;
+  }
+  .route-enter-from,
+  .route-leave-to,
+  .menu-enter-from,
+  .menu-leave-to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.reduce-motion .route-enter-active,
+.reduce-motion .route-leave-active,
+.reduce-motion .menu-enter-active,
+.reduce-motion .menu-leave-active {
+  transition: none;
+}
+.reduce-motion .route-enter-from,
+.reduce-motion .route-leave-to,
+.reduce-motion .menu-enter-from,
+.reduce-motion .menu-leave-to {
+  transform: none;
+  opacity: 1;
+}
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

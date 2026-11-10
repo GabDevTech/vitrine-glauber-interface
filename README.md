@@ -1,46 +1,44 @@
-# Vitrine Glauber - Interface
+# Vitrine Glauber
 
-Interface demonstrativa da Vitrine Glauber, plataforma pública digital dos boxes e expositores do Centro Cultural Glauber Rocha, em Vitória da Conquista - BA.
+Site público para descobrir boxes e produtos do Centro Cultural Glauber Rocha, salvar favoritos e planejar uma visita. Vue 3, JavaScript, Quasar 2, Vite 7, Pinia e Vue Router.
 
-## Tecnologias
+## Começar
 
-- Vue.js 3 com Composition API
-- Quasar Framework
-- Pinia
-- Vue Router
-- Vite
+Instale Node.js 22.12 ou superior e npm. Na pasta do projeto:
 
-## Telas incluídas
-
-- Página inicial de apresentação e descoberta
-- Catálogos completos de boxes e produtos
-- Perfil público e compartilhável de cada box
-- Página compartilhável de cada produto
-- Filtros sincronizados com a URL
-- Páginas Sobre, Como visitar, Acessibilidade e Privacidade
-- Estados de carregamento, erro recuperável e resultado vazio
-- Tema claro e escuro
-- Controles de tamanho de texto e alto contraste
-
-Os dados e contatos presentes na demonstração são fictícios e devem ser substituídos antes da publicação.
-
-## Executar localmente
-
-```bash
-npm install
+```sh
+npm ci
 npm run dev
 ```
 
-Acesse `http://127.0.0.1:4173`.
+Abra http://localhost:4180. Se a porta estiver ocupada, use o endereço informado pelo Vite. Para parar, pressione `Ctrl+C`.
 
-## Compilar para produção
+## Comandos
 
-```bash
-npm run build
-```
+| Comando                           | Para que serve                                 |
+| --------------------------------- | ---------------------------------------------- |
+| `npm run dev`                     | Desenvolvimento com atualização automática     |
+| `npm test`                        | Testes unitários de catálogo e armazenamento   |
+| `npx playwright install chromium` | Instala o navegador dos testes de interface    |
+| `npm run test:e2e`                | Testes de navegação e interface com Playwright |
+| `npm run format`                  | Formata os arquivos configurados com Prettier  |
+| `npm run format:check`            | Confere a formatação sem alterar arquivos      |
+| `npm run build`                   | Gera a versão de produção em `dist/`           |
+| `npm run preview`                 | Confere o build localmente; não publica o site |
 
-Os arquivos prontos para hospedagem serão gerados em `dist/`.
+## Entender e alterar
 
-## Configuração de hospedagem
+A aplicação de gestão fica separada em `gestao/`. Execute `npm run dev:gestao` e abra
+http://localhost:4175/gestao/login. A estrutura e os comandos estão em
+[Gestão](gestao/README.md), com um [guia para iniciantes](gestao/docs/GUIA-GESTAO.md).
 
-O projeto usa histórico de navegação do navegador. Em produção, configure o servidor para redirecionar rotas desconhecidas para `index.html`. Assim, endereços como `/boxes/barro-da-serra` e `/produtos/caneca-serra` também funcionam quando abertos diretamente.
+- [Guia de Vue para iniciantes](docs/GUIA-VUE.md): estrutura, conceitos e exemplos de alteração.
+- [Produto](PRODUCT.md): objetivo, jornada e limites da demonstração.
+- [Sistema visual](DESIGN.md): cores, tipografia, componentes e responsividade.
+- [Marca](brand-spec.md), [direção aprovada](direction-approved.md) e [origem dos arquivos](docs/ASSETS.md).
+
+Comece por `src/main.js`, `src/router/index.js` e `src/pages/HomePage.vue`. Os registros editáveis ficam em `src/data/catalog.js`.
+
+Catálogo, expositores, preços e contatos são demonstrativos. Fotos são ilustrativas. Contatos fictícios estão bloqueados; não há pagamento, login ou painel administrativo. Favoritos e preferências ficam apenas no navegador. O mapa externo só carrega quando solicitado.
+
+Para hospedar, sirva `dist/` com fallback para `index.html`: o Vue Router precisa dele ao abrir diretamente uma rota como `/boxes/barro-da-serra`.
