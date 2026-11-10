@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { fetchCatalog } from '../services/catalogService'
+import { useFavoritesStore } from './favorites'
 
 export const useCatalogStore = defineStore('catalog', () => {
   const boxes = ref([])
@@ -22,6 +23,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         boxes.value = data.boxes
         categories.value = data.categories
         products.value = data.products
+        useFavoritesStore().migrateLegacyFavorites(data)
         loaded.value = true
       })
       .catch(() => {

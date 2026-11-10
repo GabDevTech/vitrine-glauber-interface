@@ -1,126 +1,36 @@
 # API da Vitrine Glauber
 
-O backend NestJS está em construção. A primeira migration e o seed demonstrativo em `prisma/seed.mjs` já foram aplicados ao PostgreSQL local após backups. O arquivo local `api/.env`, ignorado pelo Git, fornece `DATABASE_URL` à API; `api/.env.example` contém apenas valores fictícios. Com o PostgreSQL disponível, execute `npm run start` nesta pasta e consulte `http://localhost:3000/api/v1/health`; a rota lê a saúde do banco e não altera dados. `npm run seed:demo:check` valida a fonte do catálogo e as imagens sem acessar o banco. As rotas de catálogo e gestão ainda não foram implementadas, e os frontends continuam com dados locais. Consulte [Guia do backend](../docs/GUIA-BACKEND.md) e [Modelo de dados](../docs/MODELO-DADOS.md) para o estado atual e as regras aprovadas.
+A API NestJS consulta o PostgreSQL e fornece os dados públicos de categorias, boxes, produtos e mídias à vitrine. A área de gestão ainda não usa a API; autenticação e operações administrativas permanecem em desenvolvimento.
 
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+## Requisitos
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Use Node.js 24 com npm, Docker Desktop com Docker Compose v2 e Git. Na máquina local, as portas 5432 (PostgreSQL), 3000 (API) e 4180 (vitrine) precisam estar livres. O PostgreSQL roda em contêiner; API e frontend rodam no computador durante o desenvolvimento.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Primeira execução
 
-## Description
+Siga [Executar o projeto em uma máquina nova](../docs/GUIA-BACKEND.md#executar-o-projeto-em-uma-maquina-nova). Esse guia descreve a criação dos arquivos `.env`, instalação dos dois conjuntos de dependências, geração do Prisma Client, aplicação das migrations, seed e inicialização dos três serviços.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Comandos nesta pasta
 
-## Project setup
+| Comando | Função |
+| --- | --- |
+| `npm ci` | Instala as dependências conforme `api/package-lock.json` |
+| `npm exec prisma -- generate` | Gera o Prisma Client local, ignorado pelo Git |
+| `npm exec prisma -- migrate deploy` | Aplica migrations versionadas pendentes sem resetar o banco |
+| `npm exec prisma -- db seed` | Carrega o catálogo demonstrativo após definir `SEED_DEMO_CONFIRM=vitrine-glauber` |
+| `npm run seed:demo:check` | Confere arquivos de origem e relações sem conectar ao banco |
+| `npm run start` | Inicia a API na porta 3000 |
+| `npm run start:dev` | Inicia a API em modo de desenvolvimento com reinício automático |
+| `npm test` | Executa os testes Jest em sequência |
 
-```bash
-$ npm install
-```
+Em PowerShell, defina a confirmação do seed com `$env:SEED_DEMO_CONFIRM = 'vitrine-glauber'`; em CMD, use `set SEED_DEMO_CONFIRM=vitrine-glauber`. A confirmação é exigida para evitar execução acidental. Rode o seed apenas no banco local de desenvolvimento.
 
-## Compile and run the project
+## Rotas públicas disponíveis
 
-```bash
-# development
-$ npm run start
+- `GET /api/v1/health` verifica a API e a conexão com PostgreSQL.
+- `GET /api/v1/categories` lista categorias ativas.
+- `GET /api/v1/boxes` lista boxes publicados; `GET /api/v1/boxes/:slug` consulta um box pelo slug.
+- `GET /api/v1/products` lista produtos publicados; `GET /api/v1/products/:slug` consulta um produto pelo slug.
+- `GET /api/v1/media/:id` entrega uma imagem vinculada a conteúdo publicado.
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-To add it to this project, run this and approve the code it prints at [observe.nestjs.com/link](https://observe.nestjs.com/link) - signing up for free if you have no account:
-
-```bash
-$ npx @nestjs/observe link
-```
-
-It installs `@nestjs/observe`, wires it into `AppModule` and `main.ts`, and writes the app key and secret into `.env`, which every `nest start` script (`start`, `start:dev`, `start:debug`) then loads. In production, set `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment instead.
-
-Or do it by hand:
-
-```bash
-$ npm install @nestjs/observe
-```
-
-Then follow the [setup guide](https://docs.nestjs.com/observability/sdk) - it takes a single import and an app key.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Parâmetros, formatos de resposta e regras de visibilidade estão no [Contrato da API](../docs/CONTRATO-API.md). O [Guia do backend](../docs/GUIA-BACKEND.md) cobre Docker, ambiente e operação local; o [Modelo de dados](../docs/MODELO-DADOS.md) documenta as tabelas e relações.

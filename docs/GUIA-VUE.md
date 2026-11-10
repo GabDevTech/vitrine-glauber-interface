@@ -28,8 +28,8 @@ O projeto usa JavaScript e Composition API com `<script setup>`. Os componentes 
 | `src/components/layout/` | Cabeçalho, marca, rodapé e acessibilidade  | Menu principal               |
 | `src/components/home/`   | Busca e categorias do início               | Descoberta inicial           |
 | `src/components/shared/` | Pequenas peças comuns                      | Favorito, contato e imagem   |
-| `src/data/catalog.js`    | Registros demonstrativos                   | Produto e expositor          |
-| `src/services/`          | Origem e carregamento de dados             | Trocar dados locais por API  |
+| `src/data/catalog.js`    | Fonte do seed e migração de favoritos      | Referência demonstrativa     |
+| `src/services/`          | Consulta e adaptação da API                | Carregar o catálogo público  |
 | `src/stores/`            | Estado compartilhado                       | Catálogo e favoritos         |
 | `src/composables/`       | Comportamento reutilizável de Vue          | Filtros, voz e preferências  |
 | `src/utils/`             | Funções sem interface                      | Busca, moeda e armazenamento |
@@ -94,38 +94,34 @@ O pai usa `<BotaoContador :valor="quantidade" @incrementar="quantidade++" />`. E
 
 ## 5. Como os dados chegam à tela
 
-O caminho é **dados locais → serviço → store → página → componente**:
+O caminho é **PostgreSQL → API → serviço → store → página → componente**:
 
-1. `data/catalog.js` exporta `boxes`, `products` e `categories`.
-2. `services/catalogService.js` entrega uma cópia desses registros por `fetchCatalog()`, função assíncrona.
+1. A API consulta o PostgreSQL e entrega categorias, boxes, produtos e mídias publicados em `/api/v1`.
+2. `services/catalogService.js` busca todas as páginas de catálogo e adapta a resposta da API para os componentes. IDs `BIGINT` permanecem textos; preços chegam como centavos; um box pode ter várias categorias.
 3. `stores/catalog.js` mantém registros e estados `loading`, `loaded` e `error`. `loadCatalog()` compartilha uma solicitação em andamento e evita recarregar dados disponíveis. `{ force: true }` permite tentar novamente.
 4. `ProductsPage.vue` solicita o catálogo em `onMounted`. `CatalogState` organiza carregamento, erro, vazio e nova tentativa.
 5. `useCatalogFilters('products')` calcula resultados e a página entrega cada registro ao `ProductCard` por prop.
 
-Para uma API real, comece pelo serviço. Preserve a resposta `{ boxes, categories, products }`, verifique `response.ok` e valide os campos antes de entregar à store. A assinatura assíncrona permite essa troca; backend e validação de dados remotos ainda precisam ser implementados.
+O serviço devolve `{ boxes, categories, products }`. O Vite encaminha `/api/v1` para a API local na porta 3000. Sem API ou banco, `CatalogState` mostra erro e permite tentar novamente. Os filtros da URL continuam calculados no navegador após o carregamento do catálogo.
 
 ## 6. Adicionar um produto
 
-Em `src/data/catalog.js`, adicione ao array `products` um objeto como este, com vírgulas entre os objetos:
+O catálogo exibido vem do PostgreSQL. A área de gestão ainda não grava nele; para adicionar um produto público agora, será necessário implementar o fluxo administrativo aprovado na API. O exemplo abaixo mostra a forma adaptada que a página recebe do serviço, apenas para leitura:
 
 ```js
 {
-  id: 9,
+  id: '9',
   slug: 'prato-serra',
-  boxId: 1,
+  boxId: '1',
   name: 'Prato Serra',
   category: 'artesanato',
-  price: 62,
-  image: '/images/catalog/prato-serra.jpg',
+  priceCents: 6200,
+  image: '/api/v1/media/15',
   description: 'Prato artesanal de cerâmica, em edição demonstrativa.',
 }
 ```
 
-Use um `id` numérico exclusivo. O `slug` exclusivo forma `/produtos/prato-serra`; prefira minúsculas, hífens e letras sem acentos. `boxId` precisa corresponder ao `id` de um box existente. `category` usa um identificador de `categories`, como `artesanato`, e não seu texto visível. `price` é número, sem `R$` e com ponto para decimais; `formatPrice` cuida da apresentação.
-
-Adicione a foto em `public/images/catalog/prato-serra.jpg`. URLs de arquivos em `public` não incluem a palavra `public`. Use uma imagem autorizada e atualize `docs/ASSETS.md`. O estado de imagem indisponível trata falhas, mas não substitui cadastrar um arquivo válido.
-
-Abra `/produtos`, busque pelo nome, confira o detalhe e a ligação com o box. Salve como favorito e recarregue. Não reutilize IDs antigos: favoritos usam tipo e ID para identificar registros.
+Os IDs chegam como texto para preservar a precisão de `BIGINT`. O slug forma `/produtos/prato-serra`; `boxId` corresponde ao ID de um box publicado. `priceCents` guarda centavos inteiros, e `formatPrice` produz a apresentação em reais. A mídia é entregue pela API, que verifica se o vínculo é público. O seed demonstrativo permanece como fonte inicial do banco; editar `src/data/catalog.js` isoladamente não altera a vitrine em execução.
 
 ## 7. Adicionar uma página e sua rota
 
@@ -176,7 +172,7 @@ Mantenha os efeitos curtos e finitos. O conteúdo já aparece sem JavaScript de 
 
 ## 10. Favoritos, acessibilidade e serviços externos
 
-`stores/favorites.js` guarda chaves como `product:1` e `box:1`; `utils/storage.js` trata falhas de armazenamento. A lista é local, pode desaparecer ao limpar o navegador e não acompanha o visitante em outro aparelho.
+`stores/favorites.js` guarda chaves com tipo e ID da API, como `product:9`, em `vitrine:favorites:v2`. Na primeira carga bem-sucedida, migra favoritos antigos por slug a partir do catálogo demonstrativo, preservando a chave antiga. `utils/storage.js` trata falhas de armazenamento. A lista é local, pode desaparecer ao limpar o navegador e não acompanha o visitante em outro aparelho.
 
 `useAccessibility` aplica tema escuro, contraste, texto maior e redução de movimento. `useSpeech` concentra a leitura em voz, cuja disponibilidade e vozes dependem do navegador. Isso complementa a interface sem substituir leitores de tela. `useShare` centraliza o compartilhamento.
 
@@ -190,4 +186,4 @@ Confira telas estreitas e largas, Tab e Enter, busca vazia, retorno pelo navegad
 
 ## 12. O que depende de um produto real
 
-Não existem API, autenticação, cadastro administrativo, sincronização entre aparelhos ou checkout. Estoque, preços, nomes, histórias, localização interna e horários precisam de confirmação real. Não há envio de mensagem no modo demonstrativo. Para publicar, configure fallback para `index.html` e revise conteúdo, privacidade, licenças e integrações efetivamente utilizadas.
+A API pública já entrega o catálogo demonstrativo do PostgreSQL, mas ainda não existem autenticação, cadastro administrativo, publicação pela gestão, sincronização entre aparelhos ou checkout. Estoque, preços, nomes, histórias, localização interna e horários precisam de confirmação real. Não há envio de mensagem no modo demonstrativo. Para publicar, configure fallback para `index.html`, encaminhamento de `/api/v1` à API e revise conteúdo, privacidade, licenças e integrações efetivamente utilizadas.

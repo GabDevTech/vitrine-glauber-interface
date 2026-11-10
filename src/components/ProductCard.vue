@@ -26,7 +26,7 @@ const owner = computed(() => catalog.boxById(props.product.boxId))
         <router-link :to="`/produtos/${product.slug}`">{{ product.name }}</router-link>
       </h3>
       <div class="product-card-bottom">
-        <strong>{{ formatPrice(product.price) }}</strong
+        <strong>{{ formatPrice(product.priceCents) }}</strong
         ><router-link
           :to="`/produtos/${product.slug}`"
           :aria-label="`Detalhes de ${product.name}`"

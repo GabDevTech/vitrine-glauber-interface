@@ -48,9 +48,11 @@ onMounted(() => catalog.loadCatalog())
           >{{ owner.name }} <q-icon name="north_east"
         /></router-link>
         <h1>{{ product.name }}</h1>
-        <p class="detail-description">{{ product.description }}</p>
+        <p v-if="product.description" class="detail-description">
+          {{ product.description }}
+        </p>
         <div class="detail-price">
-          <strong>{{ formatPrice(product.price) }}</strong>
+          <strong>{{ formatPrice(product.priceCents) }}</strong>
           <p>Valor demonstrativo. Confirme preço e disponibilidade com o expositor.</p>
         </div>
         <ContactButton :box="owner" :product-name="product.name" /><DetailActions

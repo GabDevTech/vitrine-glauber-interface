@@ -72,7 +72,7 @@ onMounted(() => catalog.loadCatalog())
         </div>
       </div>
     </section>
-    <section class="maker-story">
+    <section v-if="box.story" class="maker-story">
       <h2>Uma história feita à mão.</h2>
       <p>{{ box.story }}</p>
     </section>

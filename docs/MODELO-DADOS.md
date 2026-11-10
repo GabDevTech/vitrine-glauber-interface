@@ -1,6 +1,6 @@
 # Modelo de dados
 
-Status: modelo aprovado e representado em `api/prisma/schema.prisma` e nos arquivos por domínio de `api/prisma/models/`. A migration `20261109_initial_schema` e o seed demonstrativo foram aplicados ao PostgreSQL local, cada um após backup. A API ainda não expõe o catálogo, e os frontends continuam com os dados locais.
+Status: modelo aprovado e representado em `api/prisma/schema.prisma` e nos arquivos por domínio de `api/prisma/models/`. A migration `20261109_initial_schema` e o seed demonstrativo foram aplicados ao PostgreSQL local, cada um após backup. A API expõe o catálogo publicado à vitrine pública; a gestão continua com dados locais.
 
 ## Princípios
 
@@ -112,7 +112,7 @@ ao ser lida e tem retenção inicial de 90 dias.
 
 O rascunho Prisma usa `BigInt @id @default(autoincrement())` nas identidades principais e mapeia os modelos para tabelas com nomes em `snake_case`. Campos exigidos apenas para publicação permanecem opcionais no banco para permitir rascunhos incompletos. As tabelas `box_slugs` e `product_slugs` reservam permanentemente endereços já publicados; a unicidade do slug público e a troca de revisões devem ocorrer em transação.
 
-A primeira migration inclui índices de unicidade sem distinção entre maiúsculas/minúsculas para e-mail e usuário; índices parciais que limitam a uma revisão publicada e uma de trabalho por item; restrições `CHECK` para versões, números de box e preço; limite de uma capa por revisão de produto; e gatilhos que impedem edição, exclusão e truncamento da auditoria. Regras que dependem de várias tabelas, como requisitos de publicação, estado do box responsável, categorias ativas, reserva de slugs entre tabelas e limite de cinco imagens, ainda exigem validação transacional na API. Os modelos Prisma e a migration são a estrutura do banco; os registros demonstrativos serão criados apenas no seed autorizado separadamente.
+A primeira migration inclui índices de unicidade sem distinção entre maiúsculas/minúsculas para e-mail e usuário; índices parciais que limitam a uma revisão publicada e uma de trabalho por item; restrições `CHECK` para versões, números de box e preço; limite de uma capa por revisão de produto; e gatilhos que impedem edição, exclusão e truncamento da auditoria. Regras que dependem de várias tabelas, como requisitos de publicação, estado do box responsável, categorias ativas, reserva de slugs entre tabelas e limite de cinco imagens, ainda exigem validação transacional na API. Os modelos Prisma e a migration são a estrutura do banco; os registros demonstrativos foram criados pelo seed autorizado separadamente.
 
 ## Seed e importação do catálogo atual
 

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useFavoritesStore } from '../../stores/favorites'
 const props = defineProps({
   type: { type: String, required: true },
-  id: { type: Number, required: true },
+  id: { type: [String, Number], required: true },
   name: { type: String, required: true },
 })
 const favorites = useFavoritesStore()

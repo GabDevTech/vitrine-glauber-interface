@@ -1,6 +1,6 @@
 # Contrato da API
 
-Status: contrato em implementação. `GET /api/v1/health` já responde com a disponibilidade da API e do PostgreSQL; as demais rotas ainda não foram implementadas.
+Status: contrato em implementação. A rota de saúde e as rotas públicas de consulta a categorias, boxes, produtos e mídias já estão disponíveis na API e são usadas pela vitrine pública. A gestão continua com dados locais; autenticação e operações de gestão ainda não foram implementadas.
 
 ## Objetivo e convenções
 
@@ -55,7 +55,13 @@ GET /api/v1/media/:id
 
 `GET /api/v1/health` responde `200` com `{ "data": { "status": "ok", "database": "ok" } }` quando a consulta ao banco funciona. Se a consulta falhar, responde `503` com `code: "SERVICE_UNAVAILABLE"`, mensagem genérica e `requestId`, sem expor detalhes da conexão. A rota não lê nem modifica registros do catálogo.
 
-As rotas públicas de catálogo e mídia não exigirão autenticação e retornarão somente revisões publicadas, categorias ativas e mídias públicas. Boxes poderão filtrar por qualquer categoria vinculada; produtos filtrarão por categoria e box. Busca de box considera nome, responsável, número e categorias; busca de produto considera nome, box e categoria. Produtos sem preço ficam no fim das ordenações por preço.
+As rotas públicas de catálogo e mídia não exigem autenticação e retornam somente revisões publicadas, categorias ativas e mídias públicas. As listas aceitam `page` e `perPage` (padrões 1 e 20, máximo 100 por página). Boxes e produtos aceitam `q`, `category` (código da categoria) e `sort`; produtos também aceitam `box` (slug atual do box). `sort=featured` mantém a ordem estável de ID; `sort=name` usa o nome em português; produtos também aceitam `price_asc` e `price_desc`, sempre deixando preços ausentes por último. Parâmetros inválidos retornam `400` com `code: "INVALID_QUERY"`.
+
+A busca ignora diferenças entre maiúsculas, minúsculas e acentos. Em boxes, considera nome, responsável, número e categorias ativas; em produtos, nome, box e categoria. Os filtros são aplicados aos registros publicados antes da paginação. Nesta primeira versão, a aplicação filtra e ordena os registros publicados em memória, adequado ao catálogo demonstrativo atual; quando o volume crescer, essas operações precisarão ser transferidas para consultas e índices do banco.
+
+Na integração atual, a vitrine solicita todas as páginas públicas de categorias, boxes e produtos, com 100 itens por página, e aplica os filtros da URL no navegador. O serviço limita a carga a 100 páginas por recurso e apresenta erro com nova tentativa quando a API falha. As chamadas e as URLs de mídia usam `/api/v1` na mesma origem: Vite faz o encaminhamento local, e a hospedagem de produção deverá oferecer encaminhamento equivalente. A vitrine não envia cookies nessas consultas.
+
+As listas retornam `{ "data": [...], "meta": { "page": 1, "perPage": 20, "total": 5, "totalPages": 1 } }`; os detalhes retornam `{ "data": {...} }`. IDs `BIGINT` são textos, `priceCents` permanece inteiro ou `null`, e as referências de mídia contêm ID e caminho `/api/v1/media/:id`. O WhatsApp de um box só aparece quando seu contato público foi autorizado. O endpoint de mídia entrega `image/webp` com `Cache-Control: no-store`, após conferir que o arquivo está vinculado à revisão publicada de um item visível; mídia privada, removida ou ligada apenas a conteúdo arquivado retorna `404`.
 
 O detalhe público usa sempre o slug da revisão publicada atual. Durante uma edição, nome e slug propostos ficam privados. Se a publicação mudar o slug, a rota antiga retorna `404`, sem redirecionamento; um slug publicado anteriormente não pode ser reutilizado por outro conteúdo. Mídias só são públicas enquanto o conteúdo relacionado estiver visível na vitrine: produtos de box arquivado também perdem o acesso público às imagens. A mídia pública de box pode ser a capa e, se houver, o retrato do responsável; a API nunca apresenta a capa ilustrativa como retrato.
 

@@ -12,8 +12,8 @@ import ProductCard from '../components/ProductCard.vue'
 import CatalogState from '../components/CatalogState.vue'
 const catalog = useCatalogStore()
 const featuredProducts = computed(() =>
-  [1, 5, 3, 8]
-    .map((id) => catalog.products.find((item) => item.id === id))
+  ['caneca-serra', 'bolsa-caminhos', 'geleia-de-umbu', 'cafe-catuai']
+    .map((slug) => catalog.products.find((item) => item.slug === slug))
     .filter(Boolean),
 )
 usePageMeta({

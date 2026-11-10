@@ -6,10 +6,17 @@ export function normalizeText(value = '') {
     .trim()
 }
 export function formatPrice(value) {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+  return Number.isSafeInteger(value) && value >= 0
+    ? `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value / 100)}R$`
     : 'Consulte o expositor'
 }
+
+const priceCents = (item) =>
+  Number.isSafeInteger(item.priceCents)
+    ? item.priceCents
+    : typeof item.price === 'number'
+      ? Math.round(item.price * 100)
+      : null
 // Função pura: devolve uma lista nova sem alterar os dados recebidos.
 export function filterCatalog(
   items,
@@ -19,7 +26,11 @@ export function filterCatalog(
 ) {
   const terms = normalizeText(query).split(/\s+/).filter(Boolean)
   const result = items.filter((item) => {
-    if (category !== 'todos' && item.category !== category) return false
+    if (
+      category !== 'todos' &&
+      !(item.categoryCodes || [item.category]).includes(category)
+    )
+      return false
     const owner = boxes.find((box) => box.id === item.boxId)
     const relatedProducts = products
       .filter((product) => product.boxId === item.id)
@@ -39,8 +50,8 @@ export function filterCatalog(
   })
   if (sort === 'nome') result.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
   if (sort === 'menor-preco')
-    result.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity))
+    result.sort((a, b) => (priceCents(a) ?? Infinity) - (priceCents(b) ?? Infinity))
   if (sort === 'maior-preco')
-    result.sort((a, b) => (b.price ?? -Infinity) - (a.price ?? -Infinity))
+    result.sort((a, b) => (priceCents(b) ?? -Infinity) - (priceCents(a) ?? -Infinity))
   return result
 }

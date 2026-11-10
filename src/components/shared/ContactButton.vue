@@ -4,7 +4,7 @@ import { isDemo } from '../../config/brand'
 const props = defineProps({ box: { type: Object, required: true }, productName: String })
 const showNotice = ref(false)
 function contact() {
-  if (isDemo) {
+  if (isDemo || !props.box.whatsapp) {
     showNotice.value = true
     return
   }
@@ -29,8 +29,11 @@ function contact() {
       @click="contact"
     />
     <p v-if="showNotice" class="contact-notice" role="status">
-      Este é um expositor demonstrativo. O contato estará disponível quando o catálogo
-      real for publicado.
+      {{
+        isDemo
+          ? 'Este é um expositor demonstrativo. O contato estará disponível quando o catálogo real for publicado.'
+          : 'Contato direto indisponível para este box.'
+      }}
     </p>
   </div>
 </template>
