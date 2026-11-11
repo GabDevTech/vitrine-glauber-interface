@@ -17,6 +17,7 @@ const reviewing = ref(false)
 const retryAfterSeconds = ref(0)
 const passwordVisible = ref(false)
 let countdownTimer
+const invitationTokenStorageKey = 'vg_bootstrap_invitation_token'
 const tokenMissing = computed(() => !token.value)
 const countdownLabel = computed(() => {
   const minutes = Math.floor(retryAfterSeconds.value / 60)
@@ -26,7 +27,13 @@ const countdownLabel = computed(() => {
 
 onMounted(() => {
   const params = new URLSearchParams(window.location.hash.slice(1))
-  token.value = params.get('token') || ''
+  const tokenFromUrl = params.get('token') || ''
+  if (tokenFromUrl) {
+    token.value = tokenFromUrl
+    sessionStorage.setItem(invitationTokenStorageKey, tokenFromUrl)
+  } else {
+    token.value = sessionStorage.getItem(invitationTokenStorageKey) || ''
+  }
   window.history.replaceState(
     window.history.state,
     '',
@@ -42,7 +49,10 @@ function startCountdown(seconds) {
   clearInterval(countdownTimer)
   countdownTimer = setInterval(() => {
     retryAfterSeconds.value = Math.max(0, retryAfterSeconds.value - 1)
-    if (retryAfterSeconds.value === 0) clearInterval(countdownTimer)
+    if (retryAfterSeconds.value === 0) {
+      clearInterval(countdownTimer)
+      error.value = ''
+    }
   }, 1000)
 }
 
@@ -68,6 +78,7 @@ async function submit() {
       password: password.value,
     })
     submitted.value = true
+    sessionStorage.removeItem(invitationTokenStorageKey)
     await router.replace({ path: '/gestao/login', query: { convite: 'aceito' } })
   } catch (cause) {
     if (cause instanceof AuthApiError && cause.code === 'INVITATION_EXPIRED') {
@@ -98,8 +109,7 @@ async function submit() {
     ) {
       reviewing.value = false
       startCountdown(cause.retryAfterSeconds || 120)
-      error.value =
-        'Cinco tentativas incorretas. Aguarde o contador para tentar novamente.'
+      error.value = 'Aguarde o contador para tentar novamente.'
     } else if (
       cause instanceof AuthApiError &&
       cause.code === 'INVITATION_ATTEMPTS_EXCEEDED'
