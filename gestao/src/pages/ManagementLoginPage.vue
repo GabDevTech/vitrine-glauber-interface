@@ -18,7 +18,7 @@ async function enter(credentials) {
   } catch (cause) {
     error.value =
       cause instanceof AuthApiError && cause.status === 429
-        ? 'Muitas tentativas. Aguarde e tente novamente.'
+        ? 'Seis tentativas incorretas. Aguarde 10 minutos para tentar novamente.'
         : 'Não foi possível entrar. Confira suas credenciais e tente novamente.'
   }
 }

@@ -6,6 +6,7 @@ export class AuthApiError extends Error {
     this.name = 'AuthApiError'
     this.code = code
     this.status = status
+    this.retryAfterSeconds = undefined
   }
 }
 
@@ -15,7 +16,11 @@ async function readResponse(response) {
     const message = Array.isArray(body.message)
       ? body.message.join(' ')
       : body.message || 'Não foi possível concluir a solicitação.'
-    throw new AuthApiError(message, body.code, response.status)
+    const error = new AuthApiError(message, body.code, response.status)
+    error.retryAfterSeconds = Number.isInteger(body.retryAfterSeconds)
+      ? body.retryAfterSeconds
+      : undefined
+    throw error
   }
   return body.data
 }

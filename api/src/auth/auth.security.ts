@@ -7,8 +7,10 @@ export const CSRF_COOKIE = 'vg_csrf';
 export const INVITATION_LIFETIME_HOURS = 24;
 export const SESSION_IDLE_MINUTES = 30;
 export const SESSION_ABSOLUTE_HOURS = 12;
-export const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-export const RATE_LIMIT_MAX_ATTEMPTS = 5;
+export const LOGIN_LOCK_MS = 10 * 60 * 1000;
+export const LOGIN_MAX_FAILED_ATTEMPTS = 6;
+export const INVITATION_MAX_NAME_ATTEMPTS = 5;
+export const BOOTSTRAP_INVITATION_LOCK_MS = 2 * 60 * 1000;
 
 export function createOpaqueToken(): string {
   return randomBytes(32).toString('base64url');

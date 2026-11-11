@@ -72,20 +72,31 @@ roles e user_roles permitem acumular editor, moderator e admin. Preferências vi
 em user_preferences (relação 1:1) e são independentes dos papéis: tema, alto
 contraste, tamanho de texto e redução de movimento.
 
+O nome de usuário preserva a capitalização escolhida no aceite do convite. A busca
+para login e a restrição de unicidade ignoram maiúsculas e minúsculas.
+
 Contas pendentes recebem convite genérico, sem expor nome real. O aceite confirma o
 nome cadastrado, define nome de usuário e senha. Admin não visualiza senhas nem
 altera dados de identidade de contas ativas na V1.
 
 O comando `api/prisma/bootstrap-admin.mjs` cria apenas o convite inicial do Admin se
-o banco ainda não tiver contas. O token aleatório é apresentado uma vez, armazenado
-somente como SHA-256 e expira em 24 horas. A página de aceite exige confirmação do
-nome real cadastrado e criação de nome de usuário e senha; a senha é armazenada com
-Argon2id. O aceite ativa a conta e cria suas preferências sem iniciar a sessão.
+o banco não tiver nenhuma conta. Ele verifica isso antes de solicitar nome, e-mail
+ou confirmação e repete a checagem dentro da transação. Uma conta bloqueada ou
+marcada como removida ainda ocupa uma linha em `users` e impede novo bootstrap. O
+token aleatório é apresentado uma vez, armazenado somente como SHA-256 e expira em
+24 horas. O registro pendente da conta e o convite são gravados antes de a pessoa
+abrir o link; essa conta não pode autenticar até definir usuário e senha. A página de
+aceite exige confirmação do nome real cadastrado e uma etapa de revisão dos dados
+antes da confirmação final; a senha nunca é exibida e é armazenada com Argon2id. Após
+cinco nomes incorretos no convite do bootstrap, `lockedUntil` registra bloqueio de
+dois minutos; depois, as tentativas são restauradas. O aceite ativa a conta e
+cria suas preferências sem iniciar a sessão. O reenvio de convite expirado ainda não
+tem fluxo próprio.
 
 ## Convites, sessões e presença
 
-invitations contém id, conta, hash de token, expiração, uso, revogação, tentativas e
-administrador criador. Reenvio revoga o convite anterior.
+invitations contém id, conta, hash de token, expiração, uso, revogação, tentativas,
+data final do bloqueio e administrador criador. Reenvio revoga o convite anterior.
 
 sessions contém id, conta, hash de token, criação, última atividade, expiração por
 inatividade, expiração absoluta, revogação e metadados mínimos pseudonimizados. Uma

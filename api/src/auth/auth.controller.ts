@@ -103,7 +103,6 @@ export class AuthController {
       requiredString(body, 'realName'),
       requiredString(body, 'username'),
       requiredString(body, 'password'),
-      request.socket.remoteAddress ?? 'unknown',
     );
     return { data: { accepted: true } };
   }

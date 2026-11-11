@@ -10,6 +10,8 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
+class BootstrapAccountConflict extends Error {}
+
 function hashToken(token) {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -28,6 +30,41 @@ function managementOrigin() {
   return origin.origin;
 }
 
+function accountConflict(existingAccounts) {
+  if (existingAccounts.length === 0) return null;
+
+  const pendingInitialAdmin =
+    existingAccounts.length === 1 &&
+    existingAccounts[0].status === 'pending_invitation' &&
+    existingAccounts[0].username === null &&
+    existingAccounts[0].passwordHash === null &&
+    existingAccounts[0].roles.some(({ role }) => role.code === 'admin');
+
+  if (pendingInitialAdmin) {
+    return new BootstrapAccountConflict(
+      'Conflito entre execuções do bootstrap: outra execução já criou a conta Admin pendente, ainda sem nome de usuário e senha. A transação impediu uma segunda conta. Use o link de convite exibido pela execução que criou a conta.',
+    );
+  }
+
+  return new BootstrapAccountConflict(
+    'Já existe uma conta de gestão configurada neste banco. O bootstrap cria somente a primeira conta Admin.',
+  );
+}
+
+async function assertNoExistingAccounts(database = prisma) {
+  const existingAccounts = await database.user.findMany({
+    take: 2,
+    select: {
+      status: true,
+      username: true,
+      passwordHash: true,
+      roles: { select: { role: { select: { code: true } } } },
+    },
+  });
+  const conflict = accountConflict(existingAccounts);
+  if (conflict) throw conflict;
+}
+
 async function issueInvitation(realNameInput, emailInput) {
   const realName = normalizeName(realNameInput);
   const email = emailInput.trim().toLocaleLowerCase('pt-BR');
@@ -39,23 +76,18 @@ async function issueInvitation(realNameInput, emailInput) {
   const token = randomBytes(32).toString('base64url');
   const now = new Date();
   const expiresAt = new Date(now.getTime() + invitationHours * 60 * 60 * 1000);
-  const result = await prisma.$transaction(
-    async (tx) => {
-      const users = await tx.user.findMany({
-        include: {
-          roles: { include: { role: true } },
-          invitations: { orderBy: { createdAt: 'desc' } },
-        },
-        take: 2,
-      });
-      let user;
-      if (users.length === 0) {
+  let result;
+  try {
+    result = await prisma.$transaction(
+      async (tx) => {
+        // Recheck within the transaction to prevent a concurrent bootstrap race.
+        await assertNoExistingAccounts(tx);
         const adminRole = await tx.role.upsert({
           where: { code: 'admin' },
           update: {},
           create: { code: 'admin' },
         });
-        user = await tx.user.create({
+        const user = await tx.user.create({
           data: {
             realName,
             email,
@@ -63,61 +95,26 @@ async function issueInvitation(realNameInput, emailInput) {
             roles: { create: { roleId: adminRole.id } },
           },
         });
-      } else if (users.length === 1) {
-        const existing = users[0];
-        const isOnlyPendingAdmin =
-          existing.username === null &&
-          existing.passwordHash === null &&
-          ['pending_invitation', 'invitation_expired'].includes(
-            existing.status,
-          ) &&
-          existing.roles.some(({ role }) => role.code === 'admin');
-        const latestInvitation = existing.invitations[0];
-        const sameIdentity =
-          existing.email.toLocaleLowerCase('pt-BR') === email &&
-          normalizeName(existing.realName).toLocaleLowerCase('pt-BR') ===
-            realName.toLocaleLowerCase('pt-BR');
-        if (!isOnlyPendingAdmin || !sameIdentity)
-          throw new Error(
-            'O bootstrap só pode ser repetido para a mesma conta Admin inicial, enquanto ela ainda não foi ativada.',
-          );
-        if (
-          latestInvitation &&
-          !latestInvitation.usedAt &&
-          !latestInvitation.revokedAt &&
-          latestInvitation.expiresAt > now
-        ) {
-          throw new Error(
-            'Já existe um convite válido para esta conta. Use o link enviado anteriormente.',
-          );
-        }
-        if (latestInvitation && !latestInvitation.revokedAt) {
-          await tx.invitation.update({
-            where: { id: latestInvitation.id },
-            data: { revokedAt: now },
-          });
-        }
-        user = await tx.user.update({
-          where: { id: existing.id },
-          data: { status: 'pending_invitation' },
-        });
-      } else {
-        throw new Error(
-          'O bootstrap inicial só funciona quando ainda não há contas de gestão.',
-        );
-      }
 
-      await tx.invitation.create({
-        data: {
-          userId: user.id,
-          tokenHash: hashToken(token),
-          expiresAt,
-        },
-      });
-      return { token, expiresAt };
-    },
-    { isolationLevel: 'Serializable' },
-  );
+        await tx.invitation.create({
+          data: {
+            userId: user.id,
+            tokenHash: hashToken(token),
+            expiresAt,
+          },
+        });
+        return { token, expiresAt };
+      },
+      { isolationLevel: 'Serializable' },
+    );
+  } catch (transactionError) {
+    try {
+      await assertNoExistingAccounts();
+    } catch (accountError) {
+      if (accountError instanceof BootstrapAccountConflict) throw accountError;
+    }
+    throw transactionError;
+  }
 
   const inviteUrl = new URL('/gestao/convite/aceitar', managementOrigin());
   inviteUrl.hash = new URLSearchParams({ token: result.token }).toString();
@@ -129,6 +126,9 @@ async function main() {
     throw new Error('Execute este comando em um terminal interativo.');
   if (!process.env.DATABASE_URL)
     throw new Error('DATABASE_URL não está configurada em api/.env.');
+
+  // Check before asking for personal data or operation confirmation.
+  await assertNoExistingAccounts();
 
   const prompt = createInterface({ input: stdin, output: stdout });
   try {

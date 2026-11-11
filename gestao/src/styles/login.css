@@ -124,6 +124,43 @@
 .login-form .q-field__control::before {
   border-color: var(--line);
 }
+.invitation-review {
+  display: grid;
+  gap: 12px;
+}
+.invitation-review h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.invitation-review p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+.invitation-review dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  column-gap: 18px;
+  row-gap: 12px;
+  margin: 4px 0;
+}
+.invitation-review dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.invitation-review dd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.password-toggle {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
 .login-submit {
   width: 100%;
   min-height: 48px;

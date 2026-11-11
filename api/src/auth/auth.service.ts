@@ -9,8 +9,10 @@ import argon2 from 'argon2';
 import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../database/prisma.service.js';
 import {
-  RATE_LIMIT_MAX_ATTEMPTS,
-  RATE_LIMIT_WINDOW_MS,
+  BOOTSTRAP_INVITATION_LOCK_MS,
+  INVITATION_MAX_NAME_ATTEMPTS,
+  LOGIN_LOCK_MS,
+  LOGIN_MAX_FAILED_ATTEMPTS,
   SESSION_ABSOLUTE_HOURS,
   SESSION_IDLE_MINUTES,
   createOpaqueToken,
@@ -23,7 +25,7 @@ import {
 
 const accountInclude = { roles: { include: { role: true } } } as const;
 type AccountRecord = Prisma.UserGetPayload<{ include: typeof accountInclude }>;
-type RateWindow = { startedAt: number; count: number };
+type RateWindow = { startedAt: number; count: number; lockedUntil?: number };
 
 export type PublicAccount = {
   id: string;
@@ -57,28 +59,54 @@ export class AuthService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  private checkRateLimit(action: string, clientKey: string): void {
+  private checkLoginRateLimit(clientKey: string): void {
     const now = Date.now();
-    for (const [key, window] of this.rateWindows) {
-      if (now - window.startedAt >= RATE_LIMIT_WINDOW_MS)
-        this.rateWindows.delete(key);
-    }
-    const key = `${action}:${clientKey || 'unknown'}`;
+    const key = `login:${clientKey || 'unknown'}`;
     const current = this.rateWindows.get(key);
-    if (!current || now - current.startedAt >= RATE_LIMIT_WINDOW_MS) {
-      this.rateWindows.set(key, { startedAt: now, count: 1 });
-      return;
-    }
-    if (current.count >= RATE_LIMIT_MAX_ATTEMPTS) {
+    if (current?.lockedUntil && current.lockedUntil > now) {
+      const retryAfterSeconds = Math.ceil((current.lockedUntil - now) / 1000);
       throw new HttpException(
         {
-          code: 'RATE_LIMITED',
-          message: 'Muitas tentativas. Aguarde 15 minutos e tente novamente.',
+          code: 'LOGIN_RATE_LIMITED',
+          message: 'Limite de 6 tentativas atingido. Aguarde 10 minutos.',
+          retryAfterSeconds,
         },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
+    if (current?.lockedUntil && current.lockedUntil <= now) {
+      this.rateWindows.delete(key);
+      return;
+    }
+    if (current && now - current.startedAt >= LOGIN_LOCK_MS) {
+      this.rateWindows.delete(key);
+    }
+  }
+
+  private recordFailedLogin(clientKey: string): void {
+    const key = `login:${clientKey || 'unknown'}`;
+    const current = this.rateWindows.get(key) ?? {
+      startedAt: Date.now(),
+      count: 0,
+    };
     current.count++;
+    if (current.count >= LOGIN_MAX_FAILED_ATTEMPTS) {
+      current.lockedUntil = Date.now() + LOGIN_LOCK_MS;
+      this.rateWindows.set(key, current);
+      throw new HttpException(
+        {
+          code: 'LOGIN_RATE_LIMITED',
+          message: 'Limite de 6 tentativas atingido. Aguarde 10 minutos.',
+          retryAfterSeconds: 600,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    this.rateWindows.set(key, current);
+  }
+
+  private clearLoginFailures(clientKey: string): void {
+    this.rateWindows.delete(`login:${clientKey || 'unknown'}`);
   }
 
   private async burnPasswordVerification(password: string): Promise<void> {
@@ -96,10 +124,11 @@ export class AuthService {
     clientKey: string,
     userAgent: string | undefined,
   ): Promise<{ sessionToken: string; account: PublicAccount }> {
-    this.checkRateLimit('login', clientKey);
+    this.checkLoginRateLimit(clientKey);
     const identifier = login.trim();
     if (!identifier || identifier.length > 254 || !validPassword(password)) {
       await this.burnPasswordVerification(password);
+      this.recordFailedLogin(clientKey);
       throw invalidCredentials();
     }
     const user = await this.prisma.user.findFirst({
@@ -120,8 +149,12 @@ export class AuthService {
       user.status !== 'active' ||
       user.roles.length === 0 ||
       !matches
-    )
+    ) {
+      this.recordFailedLogin(clientKey);
       throw invalidCredentials();
+    }
+
+    this.clearLoginFailures(clientKey);
 
     const sessionToken = createOpaqueToken();
     const now = new Date();
@@ -208,19 +241,32 @@ export class AuthService {
     realName: string,
     username: string,
     password: string,
-    clientKey: string,
   ): Promise<void> {
-    this.checkRateLimit('invitation', clientKey);
-    if (
-      !token ||
-      token.length > 128 ||
-      !validFullName(realName) ||
-      !validUsername(username) ||
-      !validPassword(password)
-    ) {
+    if (!token || token.length > 128) {
       throw new ConflictException({
         code: 'INVALID_INVITATION',
         message: 'Convite inválido ou indisponível.',
+      });
+    }
+
+    if (!validFullName(realName)) {
+      throw new ConflictException({
+        code: 'INVALID_REAL_NAME',
+        message:
+          'Informe um nome real com pelo menos 2 e no máximo 130 caracteres.',
+      });
+    }
+    if (!validUsername(username)) {
+      throw new ConflictException({
+        code: 'INVALID_USERNAME',
+        message:
+          'O nome de usuário deve ter de 3 a 30 caracteres e usar letras, números, ponto, hífen ou sublinhado.',
+      });
+    }
+    if (!validPassword(password)) {
+      throw new ConflictException({
+        code: 'INVALID_PASSWORD',
+        message: 'A senha deve ter entre 8 e 130 caracteres.',
       });
     }
 
@@ -250,7 +296,40 @@ export class AuthService {
         message: 'Este convite expirou. Solicite um novo convite.',
       });
     }
-    if (invitation.attemptCount >= RATE_LIMIT_MAX_ATTEMPTS) {
+    const isBootstrapInvitation = invitation.createdByUserId === null;
+    if (
+      isBootstrapInvitation &&
+      invitation.lockedUntil &&
+      invitation.lockedUntil > now
+    ) {
+      throw new HttpException(
+        {
+          code: 'BOOTSTRAP_INVITATION_LOCKED',
+          message:
+            'Cinco tentativas incorretas. Aguarde para tentar novamente.',
+          retryAfterSeconds: Math.ceil(
+            (invitation.lockedUntil.getTime() - now.getTime()) / 1000,
+          ),
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    if (
+      isBootstrapInvitation &&
+      invitation.lockedUntil &&
+      invitation.lockedUntil <= now
+    ) {
+      await this.prisma.invitation.updateMany({
+        where: { id: invitation.id, lockedUntil: { lte: now } },
+        data: { attemptCount: 0, lockedUntil: null },
+      });
+      invitation.attemptCount = 0;
+      invitation.lockedUntil = null;
+    }
+    if (
+      !isBootstrapInvitation &&
+      invitation.attemptCount >= INVITATION_MAX_NAME_ATTEMPTS
+    ) {
       throw new HttpException(
         {
           code: 'INVITATION_ATTEMPTS_EXCEEDED',
@@ -268,10 +347,34 @@ export class AuthService {
           id: invitation.id,
           usedAt: null,
           revokedAt: null,
-          attemptCount: { lt: RATE_LIMIT_MAX_ATTEMPTS },
+          attemptCount: { lt: INVITATION_MAX_NAME_ATTEMPTS },
         },
-        data: { attemptCount: { increment: 1 } },
+        data: {
+          attemptCount: { increment: 1 },
+          ...(isBootstrapInvitation &&
+          invitation.attemptCount + 1 >= INVITATION_MAX_NAME_ATTEMPTS
+            ? {
+                lockedUntil: new Date(
+                  Date.now() + BOOTSTRAP_INVITATION_LOCK_MS,
+                ),
+              }
+            : {}),
+        },
       });
+      if (
+        isBootstrapInvitation &&
+        invitation.attemptCount + 1 >= INVITATION_MAX_NAME_ATTEMPTS
+      ) {
+        throw new HttpException(
+          {
+            code: 'BOOTSTRAP_INVITATION_LOCKED',
+            message:
+              'Cinco tentativas incorretas. Aguarde 2 minutos para tentar novamente.',
+            retryAfterSeconds: 120,
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
       throw new ConflictException({
         code: 'INVITATION_IDENTITY_MISMATCH',
         message: 'Confira o nome real informado no convite.',
@@ -300,7 +403,14 @@ export class AuthService {
           usedAt: null,
           revokedAt: null,
           expiresAt: { gt: new Date() },
-          attemptCount: { lt: RATE_LIMIT_MAX_ATTEMPTS },
+          ...(isBootstrapInvitation
+            ? {
+                OR: [
+                  { attemptCount: { lt: INVITATION_MAX_NAME_ATTEMPTS } },
+                  { lockedUntil: { lte: new Date() } },
+                ],
+              }
+            : { attemptCount: { lt: INVITATION_MAX_NAME_ATTEMPTS } }),
         },
         data: { usedAt: new Date() },
       });
@@ -308,7 +418,7 @@ export class AuthService {
       await tx.user.update({
         where: { id: invitation.userId, status: 'pending_invitation' },
         data: {
-          username: username.toLowerCase(),
+          username,
           passwordHash,
           status: 'active',
           activatedAt: new Date(),

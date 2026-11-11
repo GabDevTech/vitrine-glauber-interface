@@ -91,6 +91,7 @@ model Invitation {
   usedAt          DateTime? @db.Timestamptz(3)
   revokedAt       DateTime? @db.Timestamptz(3)
   attemptCount    Int       @default(0)
+  lockedUntil     DateTime? @db.Timestamptz(3)
   createdByUserId BigInt?
   createdAt       DateTime  @default(now()) @db.Timestamptz(3)
   user            User      @relation("InvitedUser", fields: [userId], references: [id], onDelete: Restrict)
