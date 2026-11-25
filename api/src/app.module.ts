@@ -3,8 +3,15 @@ import { AuthModule } from './auth/auth.module.js';
 import { PublicCatalogModule } from './catalog/public-catalog.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
+import { ManagementModule } from './management/management.module.js';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, HealthModule, PublicCatalogModule],
+  imports: [
+    DatabaseModule,
+    AuthModule,
+    HealthModule,
+    PublicCatalogModule,
+    ManagementModule,
+  ],
 })
 export class AppModule {}

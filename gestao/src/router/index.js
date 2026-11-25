@@ -47,6 +47,11 @@ const router = createRouter({
           props: { kind: 'review' },
           meta: { title: 'Revisões' },
         },
+        {
+          path: 'categorias',
+          component: () => import('../pages/ManagementCategoriesPage.vue'),
+          meta: { title: 'Categorias', requiresAdmin: true },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/gestao/painel' },
@@ -60,6 +65,11 @@ router.beforeEach(async (to) => {
     // A rota pública permanece acessível quando não há sessão válida.
   }
   if (to.meta.requiresSession && !session.active) return '/gestao/login'
+  if (
+    to.meta.requiresAdmin &&
+    !(session.user?.roles || []).includes('admin')
+  )
+    return '/gestao/painel'
   if (to.path === '/gestao/login' && session.active) return '/gestao/painel'
 })
 router.afterEach((to) => {

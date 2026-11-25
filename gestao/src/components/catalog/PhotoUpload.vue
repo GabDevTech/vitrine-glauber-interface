@@ -1,10 +1,11 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { prepareImage } from '../../utils/media'
+import { uploadManagementMedia } from '../../services/managementApi'
 
 const photos = defineModel({ type: Array, default: () => [] })
 const props = defineProps({
   portrait: Boolean,
+  mediaKind: { type: String, default: '' },
   disabled: Boolean,
   error: { type: String, default: '' },
 })
@@ -12,12 +13,22 @@ const emit = defineEmits(['processing'])
 const fileInput = ref(null)
 const processing = ref(false)
 const localError = ref('')
-const limit = computed(() => (props.portrait ? 1 : 5))
+const limit = computed(() =>
+  props.portrait || props.mediaKind === 'box_cover' ? 1 : 5,
+)
 const title = computed(() =>
-  props.portrait ? 'Foto do responsável (opcional)' : 'Fotos do produto',
+  props.portrait
+    ? 'Foto do responsável (opcional)'
+    : props.mediaKind === 'box_cover'
+      ? 'Foto de capa do box'
+      : 'Fotos do produto',
 )
 const inputId = computed(() =>
-  props.portrait ? 'owner-photo-input' : 'product-photo-input',
+  props.portrait
+    ? 'owner-photo-input'
+    : props.mediaKind === 'box_cover'
+      ? 'box-cover-photo-input'
+      : 'product-photo-input',
 )
 
 async function addPhotos(event) {
@@ -35,12 +46,15 @@ async function addPhotos(event) {
       `Selecione até ${limit.value} ${props.portrait ? 'foto' : 'fotos'} no total.`,
     )
   try {
+    const resolvedKind =
+      props.mediaKind || (props.portrait ? 'box_owner_portrait' : 'product_image')
     for (const file of files.slice(0, available)) {
       try {
-        next.push(await prepareImage(file))
+        const uploaded = await uploadManagementMedia(file, resolvedKind)
+        next.push(uploaded.url)
       } catch (failure) {
         failures.push(
-          `${file.name}: ${failure.message || 'Não foi possível ler esta foto. Tente outro arquivo.'}`,
+          `${file.name}: ${failure.message || 'Não foi possível enviar esta foto. Tente outro arquivo.'}`,
         )
       }
     }

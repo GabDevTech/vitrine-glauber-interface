@@ -1,8 +1,8 @@
 <script setup>
 import StatusBadge from '../shared/StatusBadge.vue'
 import ManagementImage from '../shared/ManagementImage.vue'
-defineProps({ records: Array, review: Boolean })
-defineEmits(['edit', 'publish'])
+defineProps({ records: Array, review: Boolean, canModerate: Boolean })
+defineEmits(['edit', 'approve', 'publish', 'deactivate', 'reactivate'])
 const priceLabel = (price) =>
   price === null || price === undefined || price === ''
     ? 'Preço não informado'
@@ -52,25 +52,79 @@ const priceLabel = (price) =>
             <span>{{ record.categoryLabel || 'Categoria não informada' }}</span
             ><small v-if="record.boxName">{{ record.boxName }}</small>
           </td>
-          <td data-label="Status"><StatusBadge :value="record.status" /></td>
+          <td data-label="Status">
+            <div class="status-cell-stack">
+              <StatusBadge :value="record.status" />
+              <small
+                class="visibility-indicator"
+                :class="`is-${record.contentStatus || 'unpublished'}`"
+              >
+                {{
+                  record.contentStatus === 'published'
+                    ? '● No ar na vitrine'
+                    : record.contentStatus === 'inactive'
+                      ? '● Inativado (fora do ar)'
+                      : '○ Não publicado (fora do ar)'
+                }}
+              </small>
+            </div>
+          </td>
           <td class="actions-cell">
-            <q-btn
-              v-if="review && record.status === 'pronto'"
-              color="primary"
-              unelevated
-              no-caps
-              label="Publicar"
-              :aria-label="`Publicar ${record.name} na demonstração`"
-              @click="$emit('publish', record)"
-            /><q-btn
-              v-else
-              outline
-              color="primary"
-              no-caps
-              :label="review ? 'Revisar' : 'Editar'"
-              :aria-label="`${review ? 'Revisar' : 'Editar'} ${record.name}`"
-              @click="$emit('edit', record)"
-            />
+            <div class="table-actions-group">
+              <q-btn
+                v-if="canModerate && record.status === 'em-revisao'"
+                color="primary"
+                unelevated
+                no-caps
+                label="Aprovar"
+                :aria-label="`Aprovar ${record.name}`"
+                @click="$emit('approve', record)"
+              />
+              <q-btn
+                v-if="
+                  canModerate &&
+                  record.status === 'pronto' &&
+                  record.contentStatus !== 'inactive'
+                "
+                color="primary"
+                unelevated
+                no-caps
+                label="Publicar"
+                :aria-label="`Publicar ${record.name}`"
+                @click="$emit('publish', record)"
+              />
+              <q-btn
+                v-if="
+                  canModerate &&
+                  record.contentStatus === 'inactive' &&
+                  record.status === 'pronto'
+                "
+                color="positive"
+                text-color="white"
+                unelevated
+                no-caps
+                label="Reativar"
+                :aria-label="`Reativar ${record.name}`"
+                @click="$emit('reactivate', record)"
+              />
+              <q-btn
+                outline
+                color="primary"
+                no-caps
+                :label="review ? 'Revisar' : 'Editar'"
+                :aria-label="`${review ? 'Revisar' : 'Editar'} ${record.name}`"
+                @click="$emit('edit', record)"
+              />
+              <q-btn
+                v-if="canModerate && record.contentStatus !== 'inactive'"
+                outline
+                color="negative"
+                no-caps
+                label="Inativar"
+                :aria-label="`Inativar ${record.name}`"
+                @click="$emit('deactivate', record)"
+              />
+            </div>
           </td>
         </tr>
       </tbody>

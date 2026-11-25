@@ -6,7 +6,7 @@ model Product {
   createdAt        DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
   publishedAt      DateTime?         @db.Timestamptz(3)
-  archivedAt       DateTime?         @db.Timestamptz(3)
+  inactivatedAt    DateTime?         @db.Timestamptz(3)
   createdBy        User?             @relation("ProductCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   revisions        ProductRevision[]
   slugReservations ProductSlug[]

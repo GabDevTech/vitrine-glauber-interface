@@ -5,7 +5,7 @@ const props = defineProps({
   records: { type: Array, default: () => [] },
   categories: { type: Array, default: () => [] },
 })
-const kind = ref('product')
+const kind = ref('box')
 const rows = computed(() =>
   props.categories.map((category) => {
     const items = props.records.filter(
@@ -35,8 +35,8 @@ const total = computed(() => rows.value.reduce((sum, row) => sum + row.total, 0)
       <q-select
         v-model="kind"
         :options="[
-          { label: 'Produtos', value: 'product' },
           { label: 'Boxes', value: 'box' },
+          { label: 'Produtos', value: 'product' },
         ]"
         emit-value
         map-options

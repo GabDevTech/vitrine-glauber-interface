@@ -28,9 +28,17 @@ const content = computed(() => labels[props.kind])
 // O Router recria esta página quando muda o caminho, mas mantém ao filtrar.
 const { catalog, search, status, category, boxId, items, update, clear } =
   useWorkspaceFilters(props.kind)
-const { editorOpen, selected, create, edit, publish } = useRecordActions(
-  props.kind === 'product' ? 'product' : 'box',
-)
+const {
+  editorOpen,
+  selected,
+  canModerate,
+  create,
+  edit,
+  approve,
+  publish,
+  deactivate,
+  reactivate,
+} = useRecordActions(props.kind === 'product' ? 'product' : 'box')
 </script>
 <template>
   <q-page class="management-page">
@@ -79,8 +87,12 @@ const { editorOpen, selected, create, edit, publish } = useRecordActions(
         <RecordTable
           :records="items"
           :review="kind === 'review'"
+          :can-moderate="canModerate"
           @edit="edit"
+          @approve="approve"
           @publish="publish"
+          @deactivate="deactivate"
+          @reactivate="reactivate"
         />
       </ManagementState>
     </section>

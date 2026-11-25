@@ -1,9 +1,10 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { statuses } from '../../config/statuses'
 import StatusBadge from '../shared/StatusBadge.vue'
 
 const props = defineProps({ records: { type: Array, default: () => [] } })
+const expanded = ref(false)
 const distribution = computed(() =>
   statuses.map((status) => ({
     ...status,
@@ -42,8 +43,17 @@ const percentage = computed(() =>
         <p>{{ records.length - published }} cadastros a preparar</p>
       </div>
     </div>
-    <details class="publication-breakdown">
-      <summary>Detalhar estados do catálogo</summary>
+    <details
+      class="publication-breakdown"
+      @toggle="expanded = Boolean($event.target?.open)"
+    >
+      <summary>
+        {{
+          expanded
+            ? 'Esconder estados do catálogo'
+            : 'Detalhar estados do catálogo'
+        }}
+      </summary>
       <ul class="publication-states">
         <li v-for="status in distribution" :key="status.value">
           <div>

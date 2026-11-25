@@ -154,9 +154,36 @@
   border-radius: 50%;
   object-fit: cover;
 }
+.record-table .status-cell-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.record-table .visibility-indicator {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted, #53627a);
+}
+.record-table .visibility-indicator.is-published {
+  color: #15803d;
+}
+.record-table .visibility-indicator.is-inactive {
+  color: #b91c1c;
+}
 .record-table .actions-cell {
   text-align: right;
+  white-space: nowrap;
 }
-.record-table .q-btn {
-  padding-inline: 13px;
+.record-table .table-actions-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.record-table .actions-cell .q-btn {
+  min-width: 108px;
+  min-height: 36px;
+  padding-inline: 14px;
 }

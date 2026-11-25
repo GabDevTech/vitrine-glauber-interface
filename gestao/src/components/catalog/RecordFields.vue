@@ -120,34 +120,45 @@ const validName = (value) =>
           v-model="draft.owner"
           :disable="disabled"
           outlined
-          label="Responsável (opcional)"
+          label="Responsável"
           name="responsavel"
           maxlength="80"
+          :rules="props.validationIntent === 'review' ? [required] : []"
         /><q-input
           v-model="draft.number"
           :disable="disabled"
           outlined
-          label="Número do box (opcional)"
+          label="Número do box"
           name="numero"
           maxlength="30"
+          :rules="props.validationIntent === 'review' ? [required] : []"
         />
       </div>
     </fieldset>
     <PhotoUpload
       v-if="draft.kind === 'product'"
       v-model="productPhotos"
+      media-kind="product_image"
       :disabled="disabled"
       :error="photoError"
       @processing="emit('processing', $event)"
     />
-    <PhotoUpload
-      v-else
-      v-model="ownerPhotos"
-      :error="photoError"
-      portrait
-      :disabled="disabled"
-      @processing="emit('processing', $event)"
-    />
+    <template v-else>
+      <PhotoUpload
+        v-model="productPhotos"
+        media-kind="box_cover"
+        :disabled="disabled"
+        :error="photoError"
+        @processing="emit('processing', $event)"
+      />
+      <PhotoUpload
+        v-model="ownerPhotos"
+        media-kind="box_owner_portrait"
+        portrait
+        :disabled="disabled"
+        @processing="emit('processing', $event)"
+      />
+    </template>
     <fieldset class="editor-group">
       <legend>Revisão e publicação</legend>
       <p class="editor-status">

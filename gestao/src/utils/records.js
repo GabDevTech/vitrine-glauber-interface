@@ -85,12 +85,18 @@ export function validateRecord(
     )
       errors.price = 'Informe um preço válido, maior ou igual a zero.'
   }
+const isApiMediaUrl = (value) =>
+  typeof value === 'string' && /^\/api\/v1\/(management\/)?media\/\d+$/.test(value)
+
   if (record.photos != null) {
     if (
       !Array.isArray(record.photos) ||
       record.photos.length > 5 ||
       record.photos.some(
-        (photo) => !isImageDataUrl(photo) && !existing?.photos?.includes(photo),
+        (photo) =>
+          !isImageDataUrl(photo) &&
+          !isApiMediaUrl(photo) &&
+          !existing?.photos?.includes(photo),
       )
     )
       errors.photos = 'Use até 5 fotos JPG, PNG ou WebP preparadas pelo seletor.'
@@ -98,6 +104,7 @@ export function validateRecord(
   if (
     record.ownerPhoto &&
     !isImageDataUrl(record.ownerPhoto) &&
+    !isApiMediaUrl(record.ownerPhoto) &&
     record.ownerPhoto !== existing?.ownerPhoto
   )
     errors.ownerPhoto = 'Escolha uma foto válida do responsável.'

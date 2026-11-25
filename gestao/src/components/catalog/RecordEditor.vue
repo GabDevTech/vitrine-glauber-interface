@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useManagementCatalog } from '../../stores/catalog'
+import { useManagementSession } from '../../stores/session'
 import RecordFields from './RecordFields.vue'
 
 const open = defineModel({ type: Boolean, default: false })
@@ -11,6 +12,7 @@ const props = defineProps({
   kind: { type: String, default: 'box' },
 })
 const catalog = useManagementCatalog()
+const session = useManagementSession()
 const quasar = useQuasar()
 const form = ref(null)
 const draft = ref({})
@@ -29,7 +31,42 @@ const title = computed(
   () =>
     `${props.record ? 'Editar' : 'Novo'} ${draft.value.kind === 'product' ? 'produto' : 'box'}`,
 )
-const canApprove = computed(() => props.record?.status === 'em-revisao')
+const canModerate = computed(() => {
+  const roles = session.user?.roles || []
+  return roles.includes('moderator') || roles.includes('admin')
+})
+const canApprove = computed(
+  () => canModerate.value && props.record?.status === 'em-revisao',
+)
+const canPublish = computed(
+  () =>
+    canModerate.value &&
+    props.record?.status === 'pronto' &&
+    props.record?.contentStatus !== 'inactive',
+)
+const canDeactivate = computed(
+  () =>
+    Boolean(props.record) &&
+    canModerate.value &&
+    props.record?.contentStatus !== 'inactive',
+)
+const canReactivate = computed(
+  () =>
+    Boolean(props.record) &&
+    canModerate.value &&
+    props.record?.contentStatus === 'inactive' &&
+    props.record?.status === 'pronto',
+)
+const visibilityNotice = computed(() => {
+  const label = draft.value.kind === 'product' ? 'Este produto' : 'Este box'
+  if (props.record?.contentStatus === 'published') {
+    return `${label} está no ar na vitrine. Suas edições não alteram a versão publicada até você enviar para a revisão.`
+  }
+  if (props.record?.contentStatus === 'inactive') {
+    return `${label} está inativado (fora do ar). As edições ficam em revisão até você publicar novamente.`
+  }
+  return `${label} ainda não está publicado (fora do ar). As alterações ficam salvas na revisão de trabalho até a publicação.`
+})
 
 watch(
   open,
@@ -128,20 +165,23 @@ async function save(intent, approve = false) {
   if (!valid || photoError.value) return
   saving.value = true
   try {
-    const saved = await catalog.save(draft.value, { intent })
-    // Se a aprovação falhar, mantenha a identidade do cadastro já salvo para tentar outra vez.
-    draft.value = JSON.parse(JSON.stringify(saved))
-    if (approve) await catalog.approve(saved)
+    if (approve && !dirty.value && props.record?.status === 'em-revisao') {
+      await catalog.approve(props.record)
+    } else {
+      const saved = await catalog.save(draft.value, { intent })
+      // Se a aprovação falhar, mantenha a identidade do cadastro já salvo para tentar outra vez.
+      draft.value = JSON.parse(JSON.stringify(saved))
+      if (approve) await catalog.approve(saved)
+    }
     baseline.value = JSON.stringify(draft.value)
     open.value = false
     quasar.notify({
       type: 'positive',
       message: approve
-        ? 'Revisão aprovada. Dados e fotos guardados neste navegador.'
+        ? 'Revisão aprovada e pronta para publicação.'
         : intent === 'review'
-          ? 'Enviado para revisão. Dados e fotos guardados neste navegador.'
-          : 'Rascunho salvo. Dados e fotos guardados neste navegador.',
-      caption: 'A vitrine pública não foi alterada.',
+          ? 'Enviado para revisão.'
+          : 'Rascunho salvo com sucesso.',
       position: 'top-right',
     })
   } catch (failure) {
@@ -152,6 +192,30 @@ async function save(intent, approve = false) {
         .filter(([field]) => field !== 'photos' && field !== 'ownerPhoto')
         .map(([, message]) => message),
     ].join(' ')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function runModalStatusAction(actionFn, successMsg) {
+  if (busy.value || validating.value || !props.record) return
+  saving.value = true
+  error.value = ''
+  try {
+    await actionFn(props.record)
+    open.value = false
+    quasar.notify({
+      type: 'positive',
+      message: successMsg,
+      position: 'top-right',
+    })
+  } catch (failure) {
+    const details = failure.details
+      ? Object.values(failure.details).flat().filter(Boolean).join(' ')
+      : ''
+    error.value = [failure.message || 'Não foi possível concluir a ação.', details]
+      .filter(Boolean)
+      .join(' ')
   } finally {
     saving.value = false
   }
@@ -184,8 +248,7 @@ async function save(intent, approve = false) {
         </q-card-section>
         <q-card-section class="editor-content">
           <p id="editor-local-note" class="editor-notice">
-            <q-icon name="info_outline" />Dados e fotos ficam guardados neste navegador. A
-            vitrine pública não é alterada.
+            <q-icon name="info_outline" />{{ visibilityNotice }}
           </p>
           <p v-if="error" class="form-error" role="alert">{{ error }}</p>
           <RecordFields
@@ -199,6 +262,35 @@ async function save(intent, approve = false) {
           />
         </q-card-section>
         <q-card-actions align="right" class="editor-actions">
+          <q-btn
+            v-if="canDeactivate"
+            flat
+            color="negative"
+            no-caps
+            label="Inativar"
+            :disable="busy || validating"
+            @click="
+              runModalStatusAction(
+                catalog.deactivate,
+                'Cadastro inativado e retirado da vitrine pública.',
+              )
+            "
+          />
+          <q-btn
+            v-if="canReactivate"
+            color="positive"
+            text-color="white"
+            unelevated
+            no-caps
+            label="Reativar"
+            :disable="busy || validating"
+            @click="
+              runModalStatusAction(
+                catalog.reactivate,
+                'Cadastro reativado e publicado novamente na vitrine pública.',
+              )
+            "
+          />
           <q-btn
             flat
             no-caps
@@ -230,6 +322,20 @@ async function save(intent, approve = false) {
             label="Aprovar revisão"
             :disable="busy || validating"
             @click="save('review', true)"
+          />
+          <q-btn
+            v-if="canPublish"
+            color="primary"
+            unelevated
+            no-caps
+            label="Publicar"
+            :disable="busy || validating"
+            @click="
+              runModalStatusAction(
+                catalog.publish,
+                'Publicado com sucesso na vitrine pública.',
+              )
+            "
           />
         </q-card-actions>
       </q-form>

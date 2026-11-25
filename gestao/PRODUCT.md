@@ -13,9 +13,10 @@ Demonstrar uma rotina editorial simples para organizar os boxes e os produtos da
 | Boxes                | Buscar, filtrar, criar e editar os campos básicos de um box         |
 | Produtos             | Buscar, filtrar, criar e editar um produto vinculado a um box       |
 | Revisões             | Trabalhar com cadastros ainda não publicados                        |
+| Categorias           | Criar, editar, ativar, desativar e excluir categorias (`admin`)     |
 | Preferências e saída | Alternar o tema e encerrar a sessão autenticada                     |
 
-Os estados editoriais são `rascunho`, `em-revisao`, `pronto` e `publicado`. Os rótulos visíveis são definidos em `gestao/src/config/statuses.js`. A ação de publicar na fila muda um cadastro pronto para publicado somente na demonstração.
+Os estados editoriais são `rascunho`, `em-revisao`, `pronto`, `publicado` e `inativado`. Os rótulos visíveis são definidos em `gestao/src/config/statuses.js`. A ação de publicar atualiza a vitrine pública e a ação de inativar retira o item do ar sem apagar o histórico.
 
 ## Dados e limites
 

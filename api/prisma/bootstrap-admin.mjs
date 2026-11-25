@@ -53,6 +53,7 @@ function accountConflict(existingAccounts) {
 
 async function assertNoExistingAccounts(database = prisma) {
   const existingAccounts = await database.user.findMany({
+    where: { roles: { some: { role: { code: 'admin' } } } },
     take: 2,
     select: {
       status: true,

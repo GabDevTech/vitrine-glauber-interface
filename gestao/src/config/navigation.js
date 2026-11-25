@@ -18,6 +18,13 @@ export const navigation = [
     icon: 'fact_check',
     to: '/gestao/revisoes',
   },
+  {
+    label: 'Categorias',
+    shortLabel: 'Categorias',
+    icon: 'category',
+    to: '/gestao/categorias',
+    adminOnly: true,
+  },
 ]
 export const publicSiteUrl =
   import.meta.env.VITE_PUBLIC_SITE_URL || 'http://localhost:4180/'

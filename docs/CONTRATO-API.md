@@ -1,6 +1,6 @@
 # Contrato da API
 
-Status: a rota de saúde, as rotas públicas de consulta ao catálogo e o primeiro fluxo de autenticação da gestão estão implementados. A gestão ainda mantém boxes, produtos e mídias no armazenamento local do navegador; as rotas editoriais e administrativas seguem pendentes.
+Status: a rota de saúde, as rotas públicas de consulta ao catálogo, o primeiro fluxo de autenticação da gestão e as rotas editoriais de boxes, produtos, categorias e mídias (`/api/v1/management/boxes`, `/products`, `/categories`, `/media`) estão implementados. A gestão ainda mantém boxes, produtos e mídias no armazenamento local do navegador até a integração da interface; conta própria, notificações e administração de usuários seguem pendentes.
 
 ## Objetivo e convenções
 
@@ -61,9 +61,9 @@ A busca ignora diferenças entre maiúsculas, minúsculas e acentos. Em boxes, c
 
 Na integração atual, a vitrine solicita todas as páginas públicas de categorias, boxes e produtos, com 100 itens por página, e aplica os filtros da URL no navegador. O serviço limita a carga a 100 páginas por recurso e apresenta erro com nova tentativa quando a API falha. As chamadas e as URLs de mídia usam `/api/v1` na mesma origem: Vite faz o encaminhamento local, e a hospedagem de produção deverá oferecer encaminhamento equivalente. A vitrine não envia cookies nessas consultas.
 
-As listas retornam `{ "data": [...], "meta": { "page": 1, "perPage": 20, "total": 5, "totalPages": 1 } }`; os detalhes retornam `{ "data": {...} }`. IDs `BIGINT` são textos, `priceCents` permanece inteiro ou `null`, e as referências de mídia contêm ID e caminho `/api/v1/media/:id`. O WhatsApp de um box só aparece quando seu contato público foi autorizado. O endpoint de mídia entrega `image/webp` com `Cache-Control: no-store`, após conferir que o arquivo está vinculado à revisão publicada de um item visível; mídia privada, removida ou ligada apenas a conteúdo arquivado retorna `404`.
+As listas retornam `{ "data": [...], "meta": { "page": 1, "perPage": 20, "total": 5, "totalPages": 1 } }`; os detalhes retornam `{ "data": {...} }`. IDs `BIGINT` são textos, `priceCents` permanece inteiro ou `null`, e as referências de mídia contêm ID e caminho `/api/v1/media/:id`. O WhatsApp de um box só aparece quando seu contato público foi autorizado. O endpoint de mídia entrega `image/webp` com `Cache-Control: no-store`, após conferir que o arquivo está vinculado à revisão publicada de um item visível; mídia privada, removida ou ligada apenas a conteúdo inativado retorna `404`.
 
-O detalhe público usa sempre o slug da revisão publicada atual. Durante uma edição, nome e slug propostos ficam privados. Se a publicação mudar o slug, a rota antiga retorna `404`, sem redirecionamento; um slug publicado anteriormente não pode ser reutilizado por outro conteúdo. Mídias só são públicas enquanto o conteúdo relacionado estiver visível na vitrine: produtos de box arquivado também perdem o acesso público às imagens. A mídia pública de box pode ser a capa e, se houver, o retrato do responsável; a API nunca apresenta a capa ilustrativa como retrato.
+O detalhe público usa sempre o slug da revisão publicada atual. Durante uma edição, nome e slug propostos ficam privados. Se a publicação mudar o slug, a rota antiga retorna `404`, sem redirecionamento; um slug publicado anteriormente não pode ser reutilizado por outro conteúdo. Mídias só são públicas enquanto o conteúdo relacionado estiver visível na vitrine: produtos de box inativado também perdem o acesso público às imagens. A mídia pública de box pode ser a capa e, se houver, o retrato do responsável; a API nunca apresenta a capa ilustrativa como retrato.
 
 ## Autenticação e convite
 
@@ -75,7 +75,7 @@ GET  /api/v1/auth/me
 POST /api/v1/auth/invitations/accept
 ```
 
-O primeiro Admin é criado pelo comando interativo `npm run admin:bootstrap`, executado em `api/`. Antes de pedir nome, e-mail ou confirmação, o comando consulta se existe alguma conta; se encontrar uma única conta Admin pendente, sem nome de usuário e senha, informa que outra execução do bootstrap provavelmente criou o convite primeiro e que não foi criada uma segunda conta. Nos demais casos com contas existentes, encerra com a mensagem de conta já configurada. Se o banco estiver sem contas, pede nome real completo e e-mail, exige a confirmação literal `CRIAR ADMIN` e cria uma conta pendente com papel `admin`. Repete a verificação dentro da transação antes de gravar para evitar uma criação concorrente. Exibe uma única vez um link de uso único, válido por 24 horas; não envia e-mail nem grava o token em texto puro. Em produção, `MANAGEMENT_ORIGIN` precisa ser HTTPS. Para executar um novo bootstrap, todas as contas precisam ter sido permanentemente removidas e não pode restar nenhuma linha em `users`; marcar uma conta como bloqueada ou removida não basta. O reenvio de um convite pendente ou expirado ainda não tem fluxo próprio.
+O primeiro Admin é criado pelo comando interativo `npm run admin:bootstrap`, executado em `api/`. Antes de pedir nome, e-mail ou confirmação, o comando consulta somente contas que tenham o papel `admin`; outras contas de gestão não impedem o bootstrap. Se encontrar uma única conta Admin pendente, sem nome de usuário e senha, informa que outra execução provavelmente criou o convite primeiro e que não foi criada uma segunda conta. Se já houver outro Admin, encerra com mensagem de conta Admin existente. A mesma verificação, restrita a Admins, é repetida dentro da transação para evitar criação concorrente. Sem Admins no banco, pede nome real completo e e-mail, exige a confirmação literal `CRIAR ADMIN` e cria uma conta pendente com papel `admin`. Exibe uma única vez um link de uso único, válido por 24 horas; não envia e-mail nem grava o token em texto puro. Em produção, `MANAGEMENT_ORIGIN` precisa ser HTTPS. Um novo bootstrap é permitido após a remoção de todos os Admins, mesmo que ainda existam contas de outros papéis. O reenvio de um convite pendente ou expirado ainda não tem fluxo próprio.
 
 O convite abre a página separada `/gestao/convite/aceitar`. A pessoa informa o nome real, nome de usuário e senha; antes do envio, uma etapa de revisão pede confirmação dos dados e nunca exibe a senha. O token fica no fragmento da URL e é removido do endereço pelo navegador antes da submissão; enquanto o convite está em uso, a página mantém o token somente no `sessionStorage` da mesma aba para sobreviver a uma atualização durante o bloqueio. Convites do bootstrap expiram em 24 horas. Cinco nomes incorretos bloqueiam novas tentativas por 2 minutos; a página mostra a contagem regressiva e, ao fim, recupera as cinco tentativas. Convites emitidos futuramente por um Admin terão política própria. Aceitar o convite não autentica automaticamente: ao concluir, a página segue para `/gestao/login`, onde a pessoa entra com e-mail ou nome de usuário e a senha recém-criada.
 
@@ -89,7 +89,7 @@ Login, logout e aceite exigem `X-CSRF-Token`, cookie CSRF correspondente e a ori
 
 ## Gestão editorial
 
-Todas as rotas de gestão exigem sessão e permissão; `POST`, `PATCH` e `DELETE` também exigem CSRF. `editor` cria, edita e envia revisões. `moderator` pode consultar todos os registros editoriais, criar e alterar conteúdo, aprovar, devolver com comentário, publicar e arquivar, inclusive revisões próprias. `admin` acumula essas permissões e administra contas, papéis e categorias. Uma pessoa pode acumular papéis; alterações de papel preservam suas preferências.
+Todas as rotas de gestão exigem sessão e permissão; `POST`, `PATCH` e `DELETE` também exigem CSRF. `editor` cria, edita e envia revisões. `moderator` pode consultar todos os registros editoriais, criar e alterar conteúdo, aprovar, devolver com comentário, publicar, inativar e reativar, inclusive revisões próprias. `admin` acumula essas permissões e administra contas, papéis e categorias. Uma pessoa pode acumular papéis; alterações de papel preservam suas preferências.
 
 ```
 GET   /api/v1/management/boxes
@@ -100,11 +100,11 @@ POST  /api/v1/management/boxes/:id/submit-review
 POST  /api/v1/management/boxes/:id/approve
 POST  /api/v1/management/boxes/:id/return
 POST  /api/v1/management/boxes/:id/publish
-POST  /api/v1/management/boxes/:id/archive
-POST  /api/v1/management/boxes/:id/restore
+POST  /api/v1/management/boxes/:id/deactivate
+POST  /api/v1/management/boxes/:id/reactivate
 ```
 
-As mesmas rotas existem sob `/api/v1/management/products`. Consulta, criação, edição e envio à revisão são permitidos a `editor`, `moderator` e `admin`; aprovação, devolução, publicação, arquivamento e restauração exigem `moderator` ou `admin`. A edição envia a `version` pertinente; conflitos retornam `409`. Devolução exige comentário de 5 a 1000 caracteres. O conteúdo publicado segue visível enquanto sua revisão de trabalho é editada; `restore` não republica sozinho.
+As mesmas rotas existem sob `/api/v1/management/products`. Consulta, criação, edição e envio à revisão são permitidos a `editor`, `moderator` e `admin`; aprovação, devolução, publicação, inativação e reativação exigem `moderator` ou `admin`. A edição envia a `version` pertinente; conflitos retornam `409`. Devolução exige comentário de 5 a 1000 caracteres. O conteúdo publicado segue visível enquanto sua revisão de trabalho é editada; `reactivate` não republica sozinho.
 
 ## Categorias, mídias e conta própria
 

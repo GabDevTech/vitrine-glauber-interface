@@ -22,28 +22,28 @@ Status: modelo aprovado e representado em `api/prisma/schema.prisma` e nos arqui
 | Evento de auditoria | BIGINT     | não público                              |
 | Sessão              | BIGINT     | token aleatório seguro, salvo como hash  |
 
-Em colisões, o servidor acrescenta sufixos (`nome`, `nome-2`). Boxes e produtos podem usar o mesmo slug porque suas rotas públicas são distintas. Slugs já publicados ficam reservados permanentemente no próprio tipo de recurso, inclusive depois de uma mudança de nome ou arquivamento; não podem ser atribuídos a outro item. Assim, uma URL antiga não passa a abrir um item diferente. Um slug proposto para revisão de trabalho também não pode colidir com o slug público ou reservado de outro item. A revisão histórica conserva seu slug sem exigir unicidade entre todas as linhas de histórico.
+Em colisões, o servidor acrescenta sufixos (`nome`, `nome-2`). Boxes e produtos podem usar o mesmo slug porque suas rotas públicas são distintas. Slugs já publicados ficam reservados permanentemente no próprio tipo de recurso, inclusive depois de uma mudança de nome ou inativação; não podem ser atribuídos a outro item. Assim, uma URL antiga não passa a abrir um item diferente. Um slug proposto para revisão de trabalho também não pode colidir com o slug público ou reservado de outro item. A revisão histórica conserva seu slug sem exigir unicidade entre todas as linhas de histórico.
 
 ## Conteúdo e revisões
 
 As tabelas `boxes` e `products` guardam a identidade estável do item. Os dados editoriais ficam em `box_revisions` e `product_revisions`.
 
 - Cada item possui no máximo uma revisão publicada e uma revisão de trabalho. As revisões anteriores permanecem como histórico interno.
-- O item controla a visibilidade pública (`unpublished`, `published` ou `archived`); a revisão de trabalho percorre `draft` → `in_review` → `ready`, podendo voltar a `draft` após devolução. A revisão publicada permanece identificada até ser substituída. Os rótulos correspondentes na gestão são “Rascunho”, “Em revisão”, “Pronto para publicar”, “Publicado” e “Arquivado”.
-- A gestão edita apenas a revisão de trabalho. Uma edição de item publicado não o arquiva: a revisão publicada e sua URL continuam na vitrine até a publicação da nova revisão.
+- O item controla a visibilidade pública (`unpublished`, `published` ou `inactive`); a revisão de trabalho percorre `draft` → `in_review` → `ready`, podendo voltar a `draft` após devolução. A revisão publicada permanece identificada até ser substituída. Os rótulos correspondentes na gestão são “Rascunho”, “Em revisão”, “Pronto para publicar”, “Publicado” e “Inativado”.
+- A gestão edita apenas a revisão de trabalho. Uma edição de item publicado não o inativa: a revisão publicada e sua URL continuam na vitrine até a publicação da nova revisão.
 - A publicação troca a revisão pública e ativa o slug da nova revisão na mesma transação. Se o slug mudou, o endereço anterior passa a responder `404`, sem redirecionamento.
 - Item e revisão possuem controle de versão iniciado em 1; o servidor verifica a versão pertinente antes de editar ou mudar o estado. Divergência retorna `409`.
-- O arquivamento oculta o item e os produtos dependentes sem apagar a última revisão publicada. Restaurar exige novo fluxo editorial antes de republicar.
+- A inativação oculta o item e os produtos dependentes da vitrine pública sem apagar a última revisão publicada. Reativar exige novo fluxo editorial antes de republicar.
 
 ### Box
 
 Cada revisão de box contém nome (2–130), slug proposto, nome do responsável (2–130), número inteiro positivo do box, localização pública (até 180), horário público (até 180), descrição opcional (até 2000), história opcional (até 5000), WhatsApp opcional, capa e retrato opcional do responsável. A capa é obrigatória para publicação; o retrato não é.
 
-Boxes têm uma ou mais categorias, sem categoria principal/secundária. A relação entre categoria e box pertence à revisão. Há uma capa por revisão e, separadamente, no máximo um retrato do responsável. O número do box é único entre identidades de boxes, inclusive arquivados; revisões históricas do mesmo box podem repetir o número. WhatsApp só aparece publicamente se o box estiver publicado e o contato tiver sido explicitamente autorizado.
+Boxes têm uma ou mais categorias, sem categoria principal/secundária. A relação entre categoria e box pertence à revisão. Há uma capa por revisão e, separadamente, no máximo um retrato do responsável. O número do box é único entre identidades de boxes, inclusive inativados; revisões históricas do mesmo box podem repetir o número. WhatsApp só aparece publicamente se o box estiver publicado e o contato tiver sido explicitamente autorizado.
 
 ### Produto
 
-Cada revisão de produto contém nome (2–130), slug proposto, `box_id`, `category_id`, descrição opcional (até 2000), `price_cents` opcional e de uma a cinco mídias. Uma mídia é capa e as demais possuem ordem explícita. O produto pode ser preparado para um box ainda não publicado, mas só é publicado quando o box correspondente está público. Arquivar um box oculta seus produtos da vitrine.
+Cada revisão de produto contém nome (2–130), slug proposto, `box_id`, `category_id`, descrição opcional (até 2000), `price_cents` opcional e de uma a cinco mídias. Uma mídia é capa e as demais possuem ordem explícita. O produto pode ser preparado para um box ainda não publicado, mas só é publicado quando o box correspondente está público. Inativar um box oculta seus produtos da vitrine.
 
 Preço é inteiro em centavos, nunca float, e usa BRL na V1. A apresentação é, por
 exemplo, 25,90R$; preço ausente mostra “Consulte o expositor”.
@@ -80,9 +80,12 @@ nome cadastrado, define nome de usuário e senha. Admin não visualiza senhas ne
 altera dados de identidade de contas ativas na V1.
 
 O comando `api/prisma/bootstrap-admin.mjs` cria apenas o convite inicial do Admin se
-o banco não tiver nenhuma conta. Ele verifica isso antes de solicitar nome, e-mail
-ou confirmação e repete a checagem dentro da transação. Uma conta bloqueada ou
-marcada como removida ainda ocupa uma linha em `users` e impede novo bootstrap. O
+o banco não tiver nenhuma conta com papel `admin`. Ele verifica isso antes de solicitar nome, e-mail
+ou confirmação e repete a checagem dentro da transação. Contas com outros papéis não
+impedem novo bootstrap; um Admin bloqueado ou marcado como removido ainda conta
+enquanto mantiver o papel `admin` na tabela. Antes de implementar a criação de outras
+contas administrativas, deve ser testado que, após remover todos os Admins, o
+bootstrap pode criar outro mesmo com gestores de outros papéis ainda cadastrados. O
 token aleatório é apresentado uma vez, armazenado somente como SHA-256 e expira em
 24 horas. O registro pendente da conta e o convite são gravados antes de a pessoa
 abrir o link; essa conta não pode autenticar até definir usuário e senha. A página de
