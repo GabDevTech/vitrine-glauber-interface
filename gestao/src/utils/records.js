@@ -23,6 +23,12 @@ export function filterRecords(
     .split(/\s+/)
     .filter(Boolean)
   return records.filter((record) => {
+    const visibilityText =
+      record.contentStatus === 'published'
+        ? 'no ar na vitrine'
+        : record.contentStatus === 'inactive'
+          ? 'inativado fora do ar'
+          : 'nao publicado fora do ar'
     const text = normalizeText(
       [
         record.name,
@@ -32,11 +38,21 @@ export function filterRecords(
         record.boxName,
         record.category,
         record.categoryLabel,
+        visibilityText,
       ].join(' '),
     )
+    const matchesStatus =
+      !status ||
+      (status === 'inativado'
+        ? record.contentStatus === 'inactive'
+        : status === 'nao-publicado'
+          ? record.contentStatus === 'unpublished' || !record.contentStatus
+          : status === 'fora-do-ar'
+            ? record.contentStatus !== 'published'
+            : record.status === status)
     return (
       (!kind || record.kind === kind) &&
-      (!status || record.status === status) &&
+      matchesStatus &&
       (!category || record.category === category) &&
       (!boxId || (record.kind === 'product' && Number(record.boxId) === Number(boxId))) &&
       terms.every((term) => text.includes(term))

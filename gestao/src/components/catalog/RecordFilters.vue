@@ -1,8 +1,8 @@
 <script setup>
 import { statuses } from '../../config/statuses'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 const filtersOpen = ref(false)
-defineProps({
+const props = defineProps({
   search: String,
   status: String,
   category: String,
@@ -13,6 +13,17 @@ defineProps({
   boxId: String,
   boxes: { type: Array, default: () => [] },
   showBox: Boolean,
+})
+const statusFilterOptions = computed(() => {
+  const base = props.review
+    ? statuses.filter((item) => item.value !== 'publicado')
+    : statuses
+  return [
+    ...base,
+    { value: 'inativado', label: 'Inativado (fora do ar)' },
+    { value: 'nao-publicado', label: 'Não publicado (fora do ar)' },
+    { value: 'fora-do-ar', label: 'Fora do ar (todos)' },
+  ]
 })
 defineEmits(['search', 'status', 'category', 'box', 'clear'])
 </script>
@@ -53,9 +64,7 @@ defineEmits(['search', 'status', 'category', 'box', 'clear'])
           emit-value
           map-options
           label="Status"
-          :options="
-            review ? statuses.filter((item) => item.value !== 'publicado') : statuses
-          "
+          :options="statusFilterOptions"
           @update:model-value="$emit('status', $event)"
         />
         <q-select
