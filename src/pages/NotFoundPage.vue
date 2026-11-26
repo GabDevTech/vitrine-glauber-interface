@@ -8,10 +8,10 @@ usePageMeta({
 <template>
   <q-page class="page-container not-found">
     <q-icon name="explore_off" />
-    <h1>Esse caminho ainda não está na vitrine.</h1>
+    <h1>Página indisponível.</h1>
     <p>
-      O endereço pode ter mudado. Que tal continuar pelos boxes ou descobrir um produto
-      novo?
+      Endereço indisponível, alterado ou inativado. Que tal continuar pelos boxes ou
+      descobrir um produto novo?
     </p>
     <div>
       <q-btn
@@ -20,6 +20,12 @@ usePageMeta({
         no-caps
         label="Explorar boxes"
         to="/boxes"
+      /><q-btn
+        color="primary"
+        unelevated
+        no-caps
+        label="Explorar produtos"
+        to="/produtos"
       /><q-btn flat color="primary" no-caps label="Voltar ao início" to="/" />
     </div>
   </q-page>

@@ -35,7 +35,7 @@ import DiscoverySearch from './home/DiscoverySearch.vue'
           href="https://blogdosena.com.br/uso-dos-boxes-do-centro-cultural-glauber-rocha-ganha-nova-regulamentacao/"
           target="_blank"
           rel="noopener noreferrer"
-          >Foto: reprodução / Blog do Sena · ampliada com IA</a
+          >Foto: reprodução / Blog do Sena</a
         >
       </figure>
     </div>

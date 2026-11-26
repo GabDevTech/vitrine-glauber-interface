@@ -172,7 +172,7 @@ O sidecar `.impeccable/design.json` contém amostras HTML/CSS independentes dos 
 
 A prancha oficial `20:2` do Figma contém a identidade própria da gestão. `ManagementSymbol.vue` compõe as duas camadas SVG originais, sem editar os arquivos, nas proporções da prancha. `ManagementBrand.vue` reúne símbolo e assinatura Outfit e troca a variante no tema escuro.
 
-O painel não repete o título no cabeçalho e não exibe uma faixa de aviso acima do conteúdo. Um único aviso após o conteúdo explica que os dados são temporários. A fila de revisão ocupa a largura disponível, sem a coluna lateral de instruções redundantes.
+O painel não repete o título no cabeçalho e não exibe faixas ou avisos de sessão demonstrativa fora do conteúdo. A fila de revisão ocupa a largura disponível, sem a coluna lateral de instruções redundantes.
 
 O login segue a composição da referência Nucleus UI fornecida pelo usuário: painel fotográfico com marca e texto à esquerda, formulário compacto e centralizado à direita. Usa a imagem ilustrativa cultural já disponível no projeto, a identidade própria da gestão e ações azuis. O formulário tem e-mail, senha, controle de visibilidade, validação. No celular, o painel fotográfico sai de cena e a marca aparece acima do formulário. A imagem tem uma aproximação finita de 800ms e o formulário uma entrada de 480ms; ambos respeitam movimento reduzido. Nenhuma animação bloqueia a interação.
 

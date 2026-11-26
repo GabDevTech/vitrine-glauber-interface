@@ -52,10 +52,6 @@ async function logout() {
           ><Transition name="management-route" mode="out-in"
             ><div :key="current.path"><component :is="Component" /></div></Transition
         ></router-view>
-        <p class="management-session-note">
-          A autenticação usa a API. Cadastros editoriais e fotos ainda ficam neste
-          navegador e não alteram a vitrine pública.
-        </p>
       </main>
     </q-page-container>
     <ManagementMobileNav />

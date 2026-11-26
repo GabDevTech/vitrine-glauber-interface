@@ -54,7 +54,9 @@ function serializeBoxRevision(rev: BoxRevisionWithCategories) {
     whatsapp: rev.whatsapp,
     allowPublicContact: rev.allowPublicContact,
     coverMediaId: rev.coverMediaId ? rev.coverMediaId.toString() : null,
-    ownerPortraitId: rev.ownerPortraitId ? rev.ownerPortraitId.toString() : null,
+    ownerPortraitId: rev.ownerPortraitId
+      ? rev.ownerPortraitId.toString()
+      : null,
     categoryIds: rev.categories.map((c) => c.categoryId.toString()),
     categories: rev.categories.map((c) => ({
       id: c.category.id.toString(),
@@ -478,8 +480,7 @@ export class ManagementBoxesService {
               'A revisão foi alterada por outra ação. Atualize e tente novamente.',
           });
         }
-        const nextName =
-          fields.name !== undefined ? fields.name : working.name;
+        const nextName = fields.name !== undefined ? fields.name : working.name;
         const slug =
           fields.name !== undefined
             ? nextName
@@ -716,7 +717,11 @@ export class ManagementBoxesService {
       if (!working.boxNumber)
         addFieldError(errors, 'boxNumber', 'Número do box é obrigatório.');
       if (!working.coverMediaId)
-        addFieldError(errors, 'coverMediaId', 'Capa é obrigatória para publicar.');
+        addFieldError(
+          errors,
+          'coverMediaId',
+          'Capa é obrigatória para publicar.',
+        );
       const activeCategories = working.categories.filter(
         (c) => c.category.active,
       );
@@ -952,5 +957,95 @@ export class ManagementBoxesService {
       });
     });
     return { data: serializeBox(await this.loadBoxOrThrow(id)) };
+  }
+
+  /**
+   * Exclui definitivamente um box inativado ou não publicado, removendo em
+   * cascata todos os produtos vinculados e preservando apenas o evento de auditoria.
+   */
+  async remove(actorUserId: bigint, rawId: string) {
+    const id = parseBigIntId(rawId, 'box');
+    const deletedProductIds = await this.prisma.$transaction(async (tx) => {
+      const box = await tx.box.findUnique({
+        where: { id },
+        include: boxDetailInclude,
+      });
+      if (!box) {
+        throw new NotFoundException({
+          code: 'BOX_NOT_FOUND',
+          message: 'Box não encontrado.',
+        });
+      }
+      if (box.status === 'published') {
+        throw new ConflictException({
+          code: 'BOX_MUST_BE_INACTIVE',
+          message: 'Inative o box antes de excluí-lo definitivamente.',
+        });
+      }
+
+      const linkedProductRevisions = await tx.productRevision.findMany({
+        where: { boxId: id },
+        select: { id: true, productId: true },
+      });
+      const linkedProductIds = [
+        ...new Set(linkedProductRevisions.map((r) => r.productId)),
+      ];
+
+      if (linkedProductIds.length > 0) {
+        await tx.productRevisionMedia.deleteMany({
+          where: { productRevision: { productId: { in: linkedProductIds } } },
+        });
+        await tx.productRevision.deleteMany({
+          where: { productId: { in: linkedProductIds } },
+        });
+        await tx.productSlug.deleteMany({
+          where: { productId: { in: linkedProductIds } },
+        });
+        await tx.product.deleteMany({
+          where: { id: { in: linkedProductIds } },
+        });
+      }
+
+      await tx.boxRevisionCategory.deleteMany({
+        where: { boxRevision: { boxId: id } },
+      });
+      await tx.boxRevision.deleteMany({
+        where: { boxId: id },
+      });
+      await tx.boxSlug.deleteMany({
+        where: { boxId: id },
+      });
+      await tx.box.delete({ where: { id } });
+
+      const displayRevision =
+        box.revisions.find((r) =>
+          (WORKING_STATUSES as readonly string[]).includes(r.status),
+        ) ??
+        box.revisions.find((r) => r.status === 'published') ??
+        box.revisions[0];
+      const boxLabel = displayRevision?.name
+        ? `Box #${id.toString()} ("${displayRevision.name}")`
+        : `Box #${id.toString()}`;
+
+      await tx.auditEvent.create({
+        data: {
+          actorUserId,
+          action: 'box.deleted',
+          resourceType: 'box',
+          resourceId: id,
+          summary: `${boxLabel} excluído definitivamente junto com ${linkedProductIds.length} produto(s) vinculado(s).`,
+        },
+      });
+
+      return linkedProductIds;
+    });
+
+    return {
+      data: {
+        deleted: true,
+        id: id.toString(),
+        deletedProductIds: deletedProductIds.map((pid) => pid.toString()),
+      },
+    };
   }
 }

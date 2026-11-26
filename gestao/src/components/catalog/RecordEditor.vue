@@ -4,6 +4,8 @@ import { onBeforeRouteLeave } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useManagementCatalog } from '../../stores/catalog'
 import { useManagementSession } from '../../stores/session'
+import { buildActionConfirmation } from '../../utils/records'
+import ConfirmActionDialog from '../shared/ConfirmActionDialog.vue'
 import RecordFields from './RecordFields.vue'
 
 const open = defineModel({ type: Boolean, default: false })
@@ -24,6 +26,13 @@ const validating = ref(false)
 const validationIntent = ref('draft')
 const processing = ref(false)
 const confirmingDiscard = ref(false)
+const pendingAction = ref(null)
+const confirmActionOpen = computed({
+  get: () => Boolean(pendingAction.value),
+  set: (value) => {
+    if (!value && !saving.value) pendingAction.value = null
+  },
+})
 let discardResolver = null
 const busy = computed(() => saving.value || processing.value)
 const dirty = computed(() => open.value && JSON.stringify(draft.value) !== baseline.value)
@@ -57,6 +66,13 @@ const canReactivate = computed(
     props.record?.contentStatus === 'inactive' &&
     props.record?.status === 'pronto',
 )
+const canDeleteBox = computed(
+  () =>
+    Boolean(props.record) &&
+    canModerate.value &&
+    props.record?.kind === 'box' &&
+    props.record?.contentStatus !== 'published',
+)
 const visibilityNotice = computed(() => {
   const label = draft.value.kind === 'product' ? 'Este produto' : 'Este box'
   if (props.record?.contentStatus === 'published') {
@@ -71,6 +87,7 @@ const visibilityNotice = computed(() => {
 watch(
   open,
   (visible) => {
+    pendingAction.value = null
     if (!visible) return
     validationIntent.value = 'draft'
     error.value = ''
@@ -126,12 +143,12 @@ function answerDiscard(discard) {
   resolve?.(discard)
 }
 async function requestClose(visible = false) {
-  if (visible || busy.value || validating.value) return
+  if (visible || busy.value || validating.value || confirmActionOpen.value) return
   if (await confirmDiscard()) open.value = false
 }
 onBeforeRouteLeave(async () => {
   if (!open.value) return true
-  if (busy.value || validating.value) return false
+  if (busy.value || validating.value || confirmActionOpen.value) return false
   const leave = await confirmDiscard()
   if (leave) open.value = false
   return leave
@@ -145,6 +162,7 @@ window.addEventListener('beforeunload', beforeUnload)
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload)
   discardResolver?.(false)
+  pendingAction.value = null
 })
 async function save(intent, approve = false) {
   if (busy.value || validating.value) return
@@ -220,11 +238,38 @@ async function runModalStatusAction(actionFn, successMsg) {
     saving.value = false
   }
 }
+
+function requestModalAction(action) {
+  if (busy.value || validating.value || !props.record) return
+  const config = buildActionConfirmation(action, props.record)
+  if (!config) return
+  pendingAction.value = { action, ...config }
+}
+
+async function confirmModalAction() {
+  if (!pendingAction.value || busy.value || validating.value || !props.record) return
+  const { action } = pendingAction.value
+  const actionMap = {
+    deactivate: [catalog.deactivate, 'Cadastro inativado e retirado da vitrine pública.'],
+    reactivate: [
+      catalog.reactivate,
+      'Cadastro reativado e publicado novamente na vitrine pública.',
+    ],
+    delete: [catalog.removeBox, 'Box excluído definitivamente.'],
+  }
+  const entry = actionMap[action]
+  if (!entry) return
+  try {
+    await runModalStatusAction(entry[0], entry[1])
+  } finally {
+    pendingAction.value = null
+  }
+}
 </script>
 <template>
   <q-dialog
     :model-value="open"
-    :persistent="busy || validating || confirmingDiscard"
+    :persistent="busy || validating || confirmingDiscard || confirmActionOpen"
     :maximized="quasar.screen.width <= 700"
     :aria-label="title"
     aria-describedby="editor-local-note"
@@ -263,18 +308,22 @@ async function runModalStatusAction(actionFn, successMsg) {
         </q-card-section>
         <q-card-actions align="right" class="editor-actions">
           <q-btn
+            v-if="canDeleteBox"
+            flat
+            color="negative"
+            no-caps
+            label="Excluir definitivamente"
+            :disable="busy || validating"
+            @click="requestModalAction('delete')"
+          />
+          <q-btn
             v-if="canDeactivate"
             flat
             color="negative"
             no-caps
             label="Inativar"
             :disable="busy || validating"
-            @click="
-              runModalStatusAction(
-                catalog.deactivate,
-                'Cadastro inativado e retirado da vitrine pública.',
-              )
-            "
+            @click="requestModalAction('deactivate')"
           />
           <q-btn
             v-if="canReactivate"
@@ -284,12 +333,7 @@ async function runModalStatusAction(actionFn, successMsg) {
             no-caps
             label="Reativar"
             :disable="busy || validating"
-            @click="
-              runModalStatusAction(
-                catalog.reactivate,
-                'Cadastro reativado e publicado novamente na vitrine pública.',
-              )
-            "
+            @click="requestModalAction('reactivate')"
           />
           <q-btn
             flat
@@ -365,4 +409,15 @@ async function runModalStatusAction(actionFn, successMsg) {
       /></q-card-actions>
     </q-card>
   </q-dialog>
+  <ConfirmActionDialog
+    v-model="confirmActionOpen"
+    :title="pendingAction?.title"
+    :message="pendingAction?.message"
+    :confirm-label="pendingAction?.confirmLabel"
+    :confirm-color="pendingAction?.confirmColor"
+    :confirm-text-color="pendingAction?.confirmTextColor"
+    :loading="saving"
+    @confirm="confirmModalAction"
+    @cancel="pendingAction = null"
+  />
 </template>

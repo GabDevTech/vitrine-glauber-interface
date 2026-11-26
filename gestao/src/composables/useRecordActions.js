@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useManagementCatalog } from '../stores/catalog'
 import { useManagementSession } from '../stores/session'
+import { buildActionConfirmation } from '../utils/records'
 
 // As páginas compartilham o comportamento; o formulário continua em RecordEditor.
 export function useRecordActions(initialKind = 'box') {
@@ -12,6 +13,13 @@ export function useRecordActions(initialKind = 'box') {
   const selected = ref(null)
   const createKind = ref(initialKind)
   const publishing = ref(false)
+  const confirmation = ref(null)
+  const confirmOpen = computed({
+    get: () => Boolean(confirmation.value),
+    set: (value) => {
+      if (!value && !publishing.value) confirmation.value = null
+    },
+  })
 
   const canModerate = computed(() => {
     const roles = session.user?.roles || []
@@ -93,11 +101,60 @@ export function useRecordActions(initialKind = 'box') {
     )
   }
 
+  function removeBox(record) {
+    return runAction(
+      () => catalog.removeBox(record),
+      'Box excluído definitivamente.',
+      'Não foi possível excluir o box.',
+    )
+  }
+
+  function requestConfirmation(action, record) {
+    if (!record || publishing.value) return
+    const config = buildActionConfirmation(action, record)
+    if (!config) return
+    confirmation.value = { action, record, ...config }
+  }
+
+  function requestDeactivate(record) {
+    requestConfirmation('deactivate', record)
+  }
+
+  function requestReactivate(record) {
+    requestConfirmation('reactivate', record)
+  }
+
+  function requestDeleteBox(record) {
+    requestConfirmation('delete', record)
+  }
+
+  function cancelConfirmation() {
+    if (!publishing.value) confirmation.value = null
+  }
+
+  async function confirmAction() {
+    if (!confirmation.value || publishing.value) return
+    const { action, record } = confirmation.value
+    const handlers = {
+      deactivate,
+      reactivate,
+      delete: removeBox,
+    }
+    const handler = handlers[action]
+    try {
+      if (handler) await handler(record)
+    } finally {
+      confirmation.value = null
+    }
+  }
+
   return {
     editorOpen,
     selected,
     createKind,
     canModerate,
+    confirmation,
+    confirmOpen,
     create,
     edit,
     approve,
@@ -105,6 +162,12 @@ export function useRecordActions(initialKind = 'box') {
     publish,
     deactivate,
     reactivate,
+    removeBox,
+    requestDeactivate,
+    requestReactivate,
+    requestDeleteBox,
+    confirmAction,
+    cancelConfirmation,
     publishing,
   }
 }

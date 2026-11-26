@@ -7,6 +7,7 @@ import ManagementState from '../components/shared/ManagementState.vue'
 import RecordFilters from '../components/catalog/RecordFilters.vue'
 import RecordTable from '../components/catalog/RecordTable.vue'
 import RecordEditor from '../components/catalog/RecordEditor.vue'
+import ConfirmActionDialog from '../components/shared/ConfirmActionDialog.vue'
 const props = defineProps({ kind: { type: String, required: true } })
 const labels = {
   box: {
@@ -32,12 +33,18 @@ const {
   editorOpen,
   selected,
   canModerate,
+  publishing,
+  confirmation,
+  confirmOpen,
   create,
   edit,
   approve,
   publish,
-  deactivate,
-  reactivate,
+  requestDeactivate,
+  requestReactivate,
+  requestDeleteBox,
+  confirmAction,
+  cancelConfirmation,
 } = useRecordActions(props.kind === 'product' ? 'product' : 'box')
 </script>
 <template>
@@ -91,8 +98,9 @@ const {
           @edit="edit"
           @approve="approve"
           @publish="publish"
-          @deactivate="deactivate"
-          @reactivate="reactivate"
+          @deactivate="requestDeactivate"
+          @reactivate="requestReactivate"
+          @delete="requestDeleteBox"
         />
       </ManagementState>
     </section>
@@ -100,6 +108,17 @@ const {
       v-model="editorOpen"
       :record="selected"
       :kind="kind === 'product' ? 'product' : 'box'"
+    />
+    <ConfirmActionDialog
+      v-model="confirmOpen"
+      :title="confirmation?.title"
+      :message="confirmation?.message"
+      :confirm-label="confirmation?.confirmLabel"
+      :confirm-color="confirmation?.confirmColor"
+      :confirm-text-color="confirmation?.confirmTextColor"
+      :loading="publishing"
+      @confirm="confirmAction"
+      @cancel="cancelConfirmation"
     />
   </q-page>
 </template>

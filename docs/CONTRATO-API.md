@@ -89,22 +89,25 @@ Login, logout e aceite exigem `X-CSRF-Token`, cookie CSRF correspondente e a ori
 
 ## Gestão editorial
 
-Todas as rotas de gestão exigem sessão e permissão; `POST`, `PATCH` e `DELETE` também exigem CSRF. `editor` cria, edita e envia revisões. `moderator` pode consultar todos os registros editoriais, criar e alterar conteúdo, aprovar, devolver com comentário, publicar, inativar e reativar, inclusive revisões próprias. `admin` acumula essas permissões e administra contas, papéis e categorias. Uma pessoa pode acumular papéis; alterações de papel preservam suas preferências.
+Todas as rotas de gestão exigem sessão e permissão; `POST`, `PATCH` e `DELETE` também exigem CSRF. `editor` cria, edita e envia revisões. `moderator` pode consultar todos os registros editoriais, criar e alterar conteúdo, aprovar, devolver com comentário, publicar, inativar, reativar e excluir definitivamente boxes elegíveis, inclusive revisões próprias. `admin` acumula essas permissões e administra contas, papéis e categorias. Uma pessoa pode acumular papéis; alterações de papel preservam suas preferências.
 
 ```
-GET   /api/v1/management/boxes
-POST  /api/v1/management/boxes
-GET   /api/v1/management/boxes/:id
-PATCH /api/v1/management/boxes/:id/revision
-POST  /api/v1/management/boxes/:id/submit-review
-POST  /api/v1/management/boxes/:id/approve
-POST  /api/v1/management/boxes/:id/return
-POST  /api/v1/management/boxes/:id/publish
-POST  /api/v1/management/boxes/:id/deactivate
-POST  /api/v1/management/boxes/:id/reactivate
+GET    /api/v1/management/boxes
+POST   /api/v1/management/boxes
+GET    /api/v1/management/boxes/:id
+PATCH  /api/v1/management/boxes/:id/revision
+POST   /api/v1/management/boxes/:id/submit-review
+POST   /api/v1/management/boxes/:id/approve
+POST   /api/v1/management/boxes/:id/return
+POST   /api/v1/management/boxes/:id/publish
+POST   /api/v1/management/boxes/:id/deactivate
+POST   /api/v1/management/boxes/:id/reactivate
+DELETE /api/v1/management/boxes/:id
 ```
 
-As mesmas rotas existem sob `/api/v1/management/products`. Consulta, criação, edição e envio à revisão são permitidos a `editor`, `moderator` e `admin`; aprovação, devolução, publicação, inativação e reativação exigem `moderator` ou `admin`. A edição envia a `version` pertinente; conflitos retornam `409`. Devolução exige comentário de 5 a 1000 caracteres. O conteúdo publicado segue visível enquanto sua revisão de trabalho é editada; `reactivate` não republica sozinho.
+As rotas de consulta, criação, edição de revisão, envio à revisão, aprovação, devolução, publicação, inativação e reativação também existem sob `/api/v1/management/products`. Consulta, criação, edição e envio à revisão são permitidos a `editor`, `moderator` e `admin`; aprovação, devolução, publicação, inativação e reativação exigem `moderator` ou `admin`. A edição envia a `version` pertinente; conflitos retornam `409`. Devolução exige comentário de 5 a 1000 caracteres. O conteúdo publicado segue visível enquanto sua revisão de trabalho é editada; `reactivate` não republica sozinho.
+
+`DELETE /api/v1/management/boxes/:id` exige papel `moderator` ou `admin` e token CSRF. Um box só pode ser excluído definitivamente quando estiver `inactive` ou `unpublished`; se `status === "published"`, a API bloqueia com `409` (`code: "BOX_MUST_BE_INACTIVE"`). Quando permitido, a exclusão ocorre em transação única e remove em cascata todos os produtos que possuam alguma revisão vinculada ao box (suas mídias de revisão, revisões, reservas de slug e registros de produto), além das categorias de revisão, revisões, reservas de slug e registro do próprio box, registrando o evento de auditoria `box.deleted` e respondendo `{ "data": { "deleted": true, "id": "...", "deletedProductIds": ["..."] } }`.
 
 ## Categorias, mídias e conta própria
 

@@ -22,7 +22,7 @@ Status: modelo aprovado e representado em `api/prisma/schema.prisma` e nos arqui
 | Evento de auditoria | BIGINT     | não público                              |
 | Sessão              | BIGINT     | token aleatório seguro, salvo como hash  |
 
-Em colisões, o servidor acrescenta sufixos (`nome`, `nome-2`). Boxes e produtos podem usar o mesmo slug porque suas rotas públicas são distintas. Slugs já publicados ficam reservados permanentemente no próprio tipo de recurso, inclusive depois de uma mudança de nome ou inativação; não podem ser atribuídos a outro item. Assim, uma URL antiga não passa a abrir um item diferente. Um slug proposto para revisão de trabalho também não pode colidir com o slug público ou reservado de outro item. A revisão histórica conserva seu slug sem exigir unicidade entre todas as linhas de histórico.
+Em colisões, o servidor acrescenta sufixos (`nome`, `nome-2`). Boxes e produtos podem usar o mesmo slug porque suas rotas públicas são distintas. Slugs já publicados ficam reservados permanentemente no próprio tipo de recurso, inclusive depois de uma mudança de nome ou inativação; não podem ser atribuídos a outro item. Assim, uma URL antiga não passa a abrir um item diferente. A exceção ocorre apenas na exclusão definitiva de um box não publicado ou inativado, que libera o registro do box e as reservas de slug dele e dos produtos vinculados removidos em cascata. Um slug proposto para revisão de trabalho também não pode colidir com o slug público ou reservado de outro item. A revisão histórica conserva seu slug sem exigir unicidade entre todas as linhas de histórico.
 
 ## Conteúdo e revisões
 
@@ -34,6 +34,7 @@ As tabelas `boxes` e `products` guardam a identidade estável do item. Os dados 
 - A publicação troca a revisão pública e ativa o slug da nova revisão na mesma transação. Se o slug mudou, o endereço anterior passa a responder `404`, sem redirecionamento.
 - Item e revisão possuem controle de versão iniciado em 1; o servidor verifica a versão pertinente antes de editar ou mudar o estado. Divergência retorna `409`.
 - A inativação oculta o item e os produtos dependentes da vitrine pública sem apagar a última revisão publicada. Reativar exige novo fluxo editorial antes de republicar.
+- A exclusão definitiva de box (`DELETE /api/v1/management/boxes/:id`) só é permitida quando o box está `inactive` ou `unpublished` (boxes com estado `published` são bloqueados). Executada em transação explícita na API respeitando as chaves estrangeiras `ON DELETE RESTRICT`, ela remove fisicamente todos os produtos vinculados ao box (`product_revision_media`, `product_revisions`, `product_slugs`, `products`) e, em seguida, as dependências e o próprio box (`box_revision_categories`, `box_revisions`, `box_slugs`, `boxes`), preservando o evento imutável em `audit_events` (`box.deleted`) e os registros de `media` (que ficam sem vínculos).
 
 ### Box
 
@@ -122,12 +123,16 @@ ao ser lida e tem retenção inicial de 90 dias.
 - Unicidade case-insensitive para e-mail e nome de usuário.
 - Unicidade de slug/código no escopo de seu recurso e de box_number numérico.
 - Chaves estrangeiras impedem vínculos quebrados; não haverá cascata silenciosa
-  sobre histórico, revisão ou auditoria.
+  no banco sobre histórico, revisão ou auditoria. Exclusões definitivas permitidas
+  (como a de box inativado ou não publicado) são orquestradas explicitamente em
+  transação da API e sempre registradas na auditoria imutável.
 - price_cents >= 0 e version >= 1 são restrições do banco.
 - Índices cobrem slugs publicados, estado, relações de categoria, box/produto,
   revisões ativas, sessões válidas, notificações não lidas e auditoria.
-- Conteúdo arquivado e auditoria são preservados. Contas removidas minimizam dados
-  pessoais onde possível, preservando referência técnica de auditoria.
+- Conteúdo inativado e auditoria são preservados durante o ciclo editorial comum;
+  a exclusão definitiva de box remove apenas os dados do box e de seus produtos
+  vinculados mantendo intacta a auditoria (`audit_events`). Contas removidas
+  minimizam dados pessoais onde possível, preservando referência técnica de auditoria.
 - Backups locais usam pg_dump, são ignorados pelo Git e mantêm os sete mais recentes.
   Restauração exige confirmação explícita.
 

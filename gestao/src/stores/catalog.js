@@ -112,7 +112,7 @@ export const useManagementCatalog = defineStore('managementCatalog', () => {
           extractMediaId(values.photos?.[0]) ?? existing?.coverMediaId ?? null,
         ownerPortraitId:
           extractMediaId(values.ownerPhoto) ??
-          (values.ownerPhoto === '' ? null : existing?.ownerPortraitId ?? null),
+          (values.ownerPhoto === '' ? null : (existing?.ownerPortraitId ?? null)),
         ...(selectedCategory ? { categoryIds: [selectedCategory.apiId] } : {}),
       }
       const res = existing
@@ -221,6 +221,33 @@ export const useManagementCatalog = defineStore('managementCatalog', () => {
     )
   }
 
+  async function removeBox(record) {
+    const res = await managementApi.deleteBox(record.apiId)
+    const deletedProductIds = new Set((res?.data?.deletedProductIds || []).map(String))
+    const next = records.value.filter((item) => {
+      if (item.kind === 'box') {
+        return !(
+          (record.apiId != null && String(item.apiId) === String(record.apiId)) ||
+          (record.id != null && String(item.id) === String(record.id))
+        )
+      }
+      if (item.kind === 'product') {
+        return !(
+          (record.id != null &&
+            item.boxId != null &&
+            String(item.boxId) === String(record.id)) ||
+          (record.apiId != null &&
+            item.boxId != null &&
+            String(item.boxId) === String(record.apiId)) ||
+          (item.apiId != null && deletedProductIds.has(String(item.apiId)))
+        )
+      }
+      return true
+    })
+    records.value = enrichRecords(next, categories.value)
+    return res.data
+  }
+
   async function createCategory(payload) {
     const res = await managementApi.createCategory(payload)
     const mapped = mapApiCategory(res.data)
@@ -284,6 +311,7 @@ export const useManagementCatalog = defineStore('managementCatalog', () => {
     publish,
     deactivate,
     reactivate,
+    removeBox,
     createCategory,
     updateCategory,
     toggleCategoryActive,

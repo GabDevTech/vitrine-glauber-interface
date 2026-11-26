@@ -78,6 +78,7 @@ export const managementApi = {
   publishBox: (id) => requestJson('POST', `/boxes/${id}/publish`, {}),
   deactivateBox: (id) => requestJson('POST', `/boxes/${id}/deactivate`, {}),
   reactivateBox: (id) => requestJson('POST', `/boxes/${id}/reactivate`, {}),
+  deleteBox: (id) => requestJson('DELETE', `/boxes/${id}`),
 
   listProducts: (page = 1, perPage = 100) =>
     requestJson('GET', `/products?page=${page}&perPage=${perPage}`),

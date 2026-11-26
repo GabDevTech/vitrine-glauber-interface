@@ -36,11 +36,8 @@
   .demo-label {
     display: none;
   }
-  .management-session-note {
-    padding: 0 24px calc(90px + env(safe-area-inset-bottom));
-  }
   .management-page {
-    padding: 24px 24px 20px;
+    padding: 24px 24px calc(90px + env(safe-area-inset-bottom));
   }
 
   .management-mobile-nav {

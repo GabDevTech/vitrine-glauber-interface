@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -96,5 +97,11 @@ export class ManagementBoxesController {
   @Roles('moderator', 'admin')
   reactivate(@Req() request: ManagementRequest, @Param('id') id: string) {
     return this.boxes.reactivate(BigInt(request.managementUser!.id), id);
+  }
+
+  @Delete(':id')
+  @Roles('moderator', 'admin')
+  remove(@Req() request: ManagementRequest, @Param('id') id: string) {
+    return this.boxes.remove(BigInt(request.managementUser!.id), id);
   }
 }

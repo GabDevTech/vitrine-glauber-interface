@@ -2,7 +2,7 @@
 import StatusBadge from '../shared/StatusBadge.vue'
 import ManagementImage from '../shared/ManagementImage.vue'
 defineProps({ records: Array, review: Boolean, canModerate: Boolean })
-defineEmits(['edit', 'approve', 'publish', 'deactivate', 'reactivate'])
+defineEmits(['edit', 'approve', 'publish', 'deactivate', 'reactivate', 'delete'])
 const priceLabel = (price) =>
   price === null || price === undefined || price === ''
     ? 'Preço não informado'
@@ -123,6 +123,19 @@ const priceLabel = (price) =>
                 label="Inativar"
                 :aria-label="`Inativar ${record.name}`"
                 @click="$emit('deactivate', record)"
+              />
+              <q-btn
+                v-if="
+                  canModerate &&
+                  record.kind === 'box' &&
+                  record.contentStatus !== 'published'
+                "
+                outline
+                color="negative"
+                no-caps
+                label="Excluir"
+                :aria-label="`Excluir ${record.name}`"
+                @click="$emit('delete', record)"
               />
             </div>
           </td>

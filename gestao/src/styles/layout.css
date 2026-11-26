@@ -147,14 +147,6 @@
   min-height: 44px;
   font-size: 0.8125rem;
 }
-.management-session-note {
-  width: min(1240px, 100%);
-  margin: 0 auto;
-  padding: 0 32px 24px;
-  color: var(--muted);
-  font-size: 0.75rem;
-  line-height: 1.7;
-}
 .management-mobile-nav {
   display: none;
 }

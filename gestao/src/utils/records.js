@@ -101,8 +101,8 @@ export function validateRecord(
     )
       errors.price = 'Informe um preço válido, maior ou igual a zero.'
   }
-const isApiMediaUrl = (value) =>
-  typeof value === 'string' && /^\/api\/v1\/(management\/)?media\/\d+$/.test(value)
+  const isApiMediaUrl = (value) =>
+    typeof value === 'string' && /^\/api\/v1\/(management\/)?media\/\d+$/.test(value)
 
   if (record.photos != null) {
     if (
@@ -141,4 +141,42 @@ export function uniqueSlug(name, records) {
   let suffix = 2
   while (records.some((item) => item.slug === slug)) slug = `${base}-${suffix++}`
   return slug
+}
+
+/**
+ * Monta título, mensagem e aparência do diálogo de confirmação editorial.
+ */
+export function buildActionConfirmation(action, record) {
+  const isBox = record?.kind === 'box'
+  const name = record?.name || ''
+  if (action === 'deactivate') {
+    return {
+      title: isBox ? 'Inativar box?' : 'Inativar produto?',
+      message: isBox
+        ? `«${name}» será inativado e retirado da vitrine pública. Os produtos vinculados a este box também ficarão ocultos na vitrine.`
+        : `«${name}» será inativado e retirado da vitrine pública.`,
+      confirmLabel: 'Inativar',
+      confirmColor: 'negative',
+      confirmTextColor: undefined,
+    }
+  }
+  if (action === 'reactivate') {
+    return {
+      title: isBox ? 'Reativar box?' : 'Reativar produto?',
+      message: `«${name}» será reativado e publicado novamente na vitrine pública.`,
+      confirmLabel: 'Reativar',
+      confirmColor: 'positive',
+      confirmTextColor: 'white',
+    }
+  }
+  if (action === 'delete') {
+    return {
+      title: 'Excluir box definitivamente?',
+      message: `Tem certeza de que deseja excluir permanentemente o box «${name}» e seus produtos vinculados? Esta ação remove o cadastro do banco de dados, da gestão e da vitrine pública e não pode ser desfeita.`,
+      confirmLabel: 'Excluir definitivamente',
+      confirmColor: 'negative',
+      confirmTextColor: undefined,
+    }
+  }
+  return null
 }
