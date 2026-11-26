@@ -1,0 +1,9 @@
+/* Índice dos estilos da gestão: cada arquivo tem uma responsabilidade. */
+@import './base.css';
+@import './layout.css';
+@import './dashboard.css';
+@import './catalog.css';
+@import './editor.css';
+@import './login.css';
+@import './motion.css';
+@import './responsive.css';

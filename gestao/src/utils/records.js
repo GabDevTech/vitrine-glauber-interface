@@ -1,0 +1,182 @@
+import { normalizeText } from '../../../src/utils/catalog.js'
+import { statuses } from '../config/statuses.js'
+import { isImageDataUrl } from './media.js'
+
+export function enrichRecords(records, categories) {
+  return records.map((record) => ({
+    ...record,
+    categoryLabel:
+      categories.find((category) => category.id === record.category)?.label || '',
+    boxName:
+      record.kind === 'product'
+        ? records.find((box) => box.kind === 'box' && box.id === Number(record.boxId))
+            ?.name || ''
+        : '',
+  }))
+}
+
+export function filterRecords(
+  records,
+  { kind = '', search = '', status = '', category = '', boxId = '' } = {},
+) {
+  const terms = normalizeText(search ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+  return records.filter((record) => {
+    const visibilityText =
+      record.contentStatus === 'published'
+        ? 'no ar na vitrine'
+        : record.contentStatus === 'inactive'
+          ? 'inativado fora do ar'
+          : 'nao publicado fora do ar'
+    const text = normalizeText(
+      [
+        record.name,
+        record.owner,
+        record.description,
+        record.number,
+        record.boxName,
+        record.category,
+        record.categoryLabel,
+        visibilityText,
+      ].join(' '),
+    )
+    const matchesStatus =
+      !status ||
+      (status === 'inativado'
+        ? record.contentStatus === 'inactive'
+        : status === 'nao-publicado'
+          ? record.contentStatus === 'unpublished' || !record.contentStatus
+          : status === 'fora-do-ar'
+            ? record.contentStatus !== 'published'
+            : record.status === status)
+    return (
+      (!kind || record.kind === kind) &&
+      matchesStatus &&
+      (!category || record.category === category) &&
+      (!boxId || (record.kind === 'product' && Number(record.boxId) === Number(boxId))) &&
+      terms.every((term) => text.includes(term))
+    )
+  })
+}
+export function summarizeRecords(records) {
+  return {
+    boxes: records.filter((item) => item.kind === 'box').length,
+    products: records.filter((item) => item.kind === 'product').length,
+    review: records.filter((item) => item.status === 'em-revisao').length,
+    ready: records.filter((item) => item.status === 'pronto').length,
+    draft: records.filter((item) => item.status === 'rascunho').length,
+    published: records.filter((item) => item.status === 'publicado').length,
+  }
+}
+export function validateRecord(
+  record,
+  { boxes = [], categories = [], intent, existing } = {},
+) {
+  const errors = {}
+  if (!['box', 'product'].includes(record.kind))
+    errors.kind = 'Tipo de cadastro inválido.'
+  const name = String(record.name ?? '').trim()
+  if (name.length < 2 || name.length > 80)
+    errors.name = 'Use um nome com 2 a 80 caracteres.'
+  if (String(record.description ?? '').length > 400)
+    errors.description = 'Use até 400 caracteres.'
+  if (
+    (intent !== 'draft' || record.category) &&
+    !categories.some((item) => item.id === record.category && item.id !== 'todos')
+  )
+    errors.category = 'Escolha uma categoria.'
+  if (!intent && !statuses.some((item) => item.value === record.status))
+    errors.status = 'Escolha um status válido.'
+  if (record.kind === 'product') {
+    if (
+      (intent !== 'draft' || record.boxId) &&
+      !boxes.some((item) => item.id === Number(record.boxId))
+    )
+      errors.boxId = 'Vincule o produto a um box existente.'
+    if (
+      record.price !== '' &&
+      record.price != null &&
+      (!Number.isFinite(Number(record.price)) || Number(record.price) < 0)
+    )
+      errors.price = 'Informe um preço válido, maior ou igual a zero.'
+  }
+  const isApiMediaUrl = (value) =>
+    typeof value === 'string' && /^\/api\/v1\/(management\/)?media\/\d+$/.test(value)
+
+  if (record.photos != null) {
+    if (
+      !Array.isArray(record.photos) ||
+      record.photos.length > 5 ||
+      record.photos.some(
+        (photo) =>
+          !isImageDataUrl(photo) &&
+          !isApiMediaUrl(photo) &&
+          !existing?.photos?.includes(photo),
+      )
+    )
+      errors.photos = 'Use até 5 fotos JPG, PNG ou WebP preparadas pelo seletor.'
+  }
+  if (
+    record.ownerPhoto &&
+    !isImageDataUrl(record.ownerPhoto) &&
+    !isApiMediaUrl(record.ownerPhoto) &&
+    record.ownerPhoto !== existing?.ownerPhoto
+  )
+    errors.ownerPhoto = 'Escolha uma foto válida do responsável.'
+  if (
+    intent === 'review' &&
+    record.kind === 'product' &&
+    !(record.photos ?? existing?.photos ?? []).length
+  )
+    errors.photos = 'Adicione uma foto do produto antes de enviar à revisão.'
+  return errors
+}
+export function uniqueSlug(name, records) {
+  const base =
+    normalizeText(name)
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'cadastro'
+  let slug = base
+  let suffix = 2
+  while (records.some((item) => item.slug === slug)) slug = `${base}-${suffix++}`
+  return slug
+}
+
+/**
+ * Monta título, mensagem e aparência do diálogo de confirmação editorial.
+ */
+export function buildActionConfirmation(action, record) {
+  const isBox = record?.kind === 'box'
+  const name = record?.name || ''
+  if (action === 'deactivate') {
+    return {
+      title: isBox ? 'Inativar box?' : 'Inativar produto?',
+      message: isBox
+        ? `«${name}» será inativado e retirado da vitrine pública. Os produtos vinculados a este box também ficarão ocultos na vitrine.`
+        : `«${name}» será inativado e retirado da vitrine pública.`,
+      confirmLabel: 'Inativar',
+      confirmColor: 'negative',
+      confirmTextColor: undefined,
+    }
+  }
+  if (action === 'reactivate') {
+    return {
+      title: isBox ? 'Reativar box?' : 'Reativar produto?',
+      message: `«${name}» será reativado e publicado novamente na vitrine pública.`,
+      confirmLabel: 'Reativar',
+      confirmColor: 'positive',
+      confirmTextColor: 'white',
+    }
+  }
+  if (action === 'delete') {
+    return {
+      title: 'Excluir box definitivamente?',
+      message: `Tem certeza de que deseja excluir permanentemente o box «${name}» e seus produtos vinculados? Esta ação remove o cadastro do banco de dados, da gestão e da vitrine pública e não pode ser desfeita.`,
+      confirmLabel: 'Excluir definitivamente',
+      confirmColor: 'negative',
+      confirmTextColor: undefined,
+    }
+  }
+  return null
+}

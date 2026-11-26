@@ -1,7 +1,229 @@
 <script setup>
+import { ref } from 'vue'
 import { usePageMeta } from '../composables/usePageMeta'
-usePageMeta({ title: 'Como visitar', description: 'Informações para planejar sua visita ao Centro Cultural Glauber Rocha.' })
+const showMap = ref(false)
+const mapUrl =
+  'https://www.google.com/maps/search/?api=1&query=Centro+Cultural+Glauber+Rocha+Vitoria+da+Conquista'
+const tips = [
+  {
+    icon: 'schedule',
+    title: 'Confira o horário',
+    text: 'Cada box tem seus dias e horários. Consulte o perfil e confirme antes de sair.',
+  },
+  {
+    icon: 'storefront',
+    title: 'Encontre seu box',
+    text: 'O perfil de cada expositor informa a ala e o ponto de referência dentro do espaço.',
+  },
+  {
+    icon: 'accessible',
+    title: 'Planeje seu acesso',
+    text: 'Para necessidades específicas de mobilidade, confirme as condições atuais com o centro cultural.',
+  },
+]
+usePageMeta({
+  title: 'Planeje sua visita',
+  description:
+    'Saiba como chegar ao Centro Cultural Glauber Rocha, em Vitória da Conquista.',
+})
 </script>
-
-<template><q-page class="content-page"><header class="content-hero page-container"><h1>Planeje seu encontro com a cultura local.</h1><p>Consulte as informações de cada box antes de sair e confirme detalhes diretamente com o expositor.</p></header><section class="visit-map-section page-container" aria-labelledby="mapa-titulo"><div class="visit-map-copy"><h2 id="mapa-titulo">Encontre o Centro Cultural Glauber Rocha</h2><p>Veja a região no mapa e abra a rota no aplicativo de sua preferência.</p><q-btn color="primary" unelevated no-caps icon="directions" label="Abrir rota no Google Maps" href="https://www.google.com/maps/search/?api=1&query=Centro+Cultural+Glauber+Rocha+Vitoria+da+Conquista" target="_blank" rel="noopener" /></div><iframe title="Mapa do Centro Cultural Glauber Rocha" src="https://www.google.com/maps?q=Centro%20Cultural%20Glauber%20Rocha%2C%20Vit%C3%B3ria%20da%20Conquista%2C%20BA&amp;output=embed" width="600" height="450" style="border:0" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe></section><section class="visit-info-grid page-container"><article><q-icon name="location_on" /><h2>Localização</h2><p>Centro Cultural Glauber Rocha, em Vitória da Conquista, Bahia.</p></article><article><q-icon name="schedule" /><h2>Horários</h2><p>Os dias e horários podem variar. Consulte o perfil de cada box antes da visita.</p></article><article><q-icon name="directions_bus" /><h2>Transporte</h2><p>Verifique a melhor rota de transporte público ou particular no mapa antes de sair.</p></article><article><q-icon name="local_parking" /><h2>Estacionamento</h2><p>Confirme previamente as opções de estacionamento disponíveis no entorno.</p></article><article><q-icon name="accessible" /><h2>Acessibilidade física</h2><p>Para necessidades específicas de acesso, confirme as condições atuais diretamente com o centro cultural.</p></article><article><q-icon name="storefront" /><h2>Localização interna</h2><p>O perfil de cada expositor informa a ala ou o ponto de referência do box.</p></article></section><div class="content-cta page-container"><q-btn color="primary" unelevated no-caps label="Conhecer os boxes" to="/boxes" /><q-btn outline color="secondary" no-caps label="Ver produtos" to="/produtos" /></div></q-page></template>
-
+<template>
+  <q-page class="page-container listing-page">
+    <header class="page-intro">
+      <h1>Tem muito mais quando é de perto.</h1>
+      <p>Organize seus achados, combine com quem faz e venha viver o Glauber.</p>
+    </header>
+    <section class="visit-location">
+      <div class="visit-location-copy">
+        <q-icon name="location_on" size="40px" />
+        <h2>Centro Cultural<br />Glauber Rocha</h2>
+        <p>Vitória da Conquista, Bahia</p>
+        <q-btn
+          color="primary"
+          unelevated
+          no-caps
+          icon="directions"
+          label="Traçar rota no Google Maps"
+          :href="mapUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+        />
+        <p class="external-note">Abre o Google Maps em uma nova aba.</p>
+      </div>
+      <div class="map-panel">
+        <iframe
+          v-if="showMap"
+          title="Mapa do Centro Cultural Glauber Rocha"
+          src="https://www.google.com/maps?q=Centro%20Cultural%20Glauber%20Rocha%2C%20Vit%C3%B3ria%20da%20Conquista%2C%20BA&amp;output=embed"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+        <div v-else class="map-placeholder">
+          <q-icon name="map" />
+          <h3>Seu próximo ponto de encontro.</h3>
+          <p>O mapa é carregado pelo Google somente se você escolher abri-lo.</p>
+          <q-btn
+            outline
+            no-caps
+            color="primary"
+            label="Mostrar mapa interativo"
+            @click="showMap = true"
+          />
+        </div>
+      </div>
+    </section>
+    <section class="visit-tips">
+      <article v-for="tip in tips" :key="tip.title">
+        <q-icon :name="tip.icon" />
+        <h2>{{ tip.title }}</h2>
+        <p>{{ tip.text }}</p>
+      </article>
+    </section>
+    <div class="visit-checklist">
+      <div>
+        <h2>Leve seus favoritos com você.</h2>
+        <p>
+          Salve os boxes e produtos que quer conhecer. Sua lista fica neste navegador.
+        </p>
+      </div>
+      <q-btn
+        color="primary"
+        unelevated
+        no-caps
+        label="Ver minha visita"
+        icon="favorite_border"
+        to="/favoritos"
+      />
+    </div>
+  </q-page>
+</template>
+<style scoped>
+.visit-location {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.visit-location-copy {
+  padding: 44px;
+}
+.visit-location-copy > .q-icon {
+  color: var(--blue);
+}
+.visit-location-copy h2 {
+  font-size: 2.375rem;
+  line-height: 1.15;
+  font-weight: 500;
+  margin: 20px 0 14px;
+}
+.visit-location-copy > p {
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+.visit-location-copy .external-note {
+  font-size: 0.75rem;
+  margin: 12px 0 0;
+}
+.map-panel {
+  background: var(--blue-soft);
+  min-height: 360px;
+  display: grid;
+}
+.map-placeholder {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 32px;
+  text-align: center;
+}
+.map-placeholder > .q-icon {
+  font-size: 3.75rem;
+  color: var(--blue);
+}
+.map-placeholder h3 {
+  font-size: 1.75rem;
+  font-weight: 500;
+  margin: 20px 0 12px;
+}
+.map-placeholder p {
+  color: var(--muted);
+  max-width: 35ch;
+  font-size: 0.8125rem;
+  margin: 0 0 22px;
+}
+iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  border: 0;
+}
+.visit-tips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  margin: 50px 0;
+}
+.visit-tips article {
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.visit-tips .q-icon {
+  font-size: 1.625rem;
+  color: var(--blue);
+}
+.visit-tips h2 {
+  font-size: 1.5625rem;
+  font-weight: 500;
+  margin: 16px 0 12px;
+}
+.visit-tips p {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.9;
+}
+.visit-checklist {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 28px;
+  padding: 30px;
+  background: var(--soft);
+  border-radius: 12px;
+}
+.visit-checklist h2 {
+  font-size: 1.75rem;
+  font-weight: 500;
+  margin: 0 0 12px;
+}
+.visit-checklist p {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  margin: 0;
+}
+.visit-checklist .q-btn {
+  flex: none;
+}
+@media (max-width: 760px) {
+  .visit-location {
+    grid-template-columns: 1fr;
+  }
+  .visit-location-copy {
+    padding: 28px;
+  }
+  .visit-location-copy h2 {
+    font-size: 2rem;
+  }
+  .visit-tips {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-block: 32px;
+  }
+  .visit-checklist {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>

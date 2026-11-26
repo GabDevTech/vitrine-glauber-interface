@@ -1,0 +1,13 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="430" height="430" viewBox="0 0 430 430" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="S&#195;&#173;mbolo &#226;&#128;&#148; janela aberta" clip-path="url(#clip0_0_4)">
+<path id="Portal" d="M0 0H306.902L205.725 101.176H101.176V205.725L0 306.902V0Z" fill="#1746C8"/>
+<path id="Luz" d="M328.824 0L430 101.176V306.902L328.824 205.725V0Z" fill="#EC4899"/>
+<path id="Base" d="M430 328.824L328.824 430H123.098L224.275 328.824H430Z" fill="#1746C8"/>
+<path id="Detalhe" d="M0 328.824L101.176 227.647V328.824H202.353L101.176 430L0 328.824Z" fill="#FFD43B"/>
+</g>
+<defs>
+<clipPath id="clip0_0_4">
+<rect width="430" height="430" fill="white"/>
+</clipPath>
+</defs>
+</svg>

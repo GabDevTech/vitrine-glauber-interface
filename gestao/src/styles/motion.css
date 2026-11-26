@@ -1,0 +1,59 @@
+/* Uma apresentação na entrada, sem bloquear o acesso ou repetir em loop. */
+.login-photo {
+  animation: login-photo-reveal 800ms var(--ease-out) both;
+}
+.login-entry {
+  animation: management-entry-arrive 480ms var(--ease-out) 80ms backwards;
+}
+.login-copy > .management-brand,
+.login-art > .management-brand {
+  animation: management-brand-arrive 560ms var(--ease-out) both;
+}
+@keyframes login-photo-reveal {
+  from {
+    transform: scale(1.035);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes management-entry-arrive {
+  from {
+    opacity: 0.5;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes management-brand-arrive {
+  from {
+    opacity: 0.5;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.management-route-enter-active {
+  transition: opacity 160ms ease-out;
+}
+.management-route-leave-active {
+  transition: opacity 100ms ease-out;
+}
+.management-route-enter-from,
+.management-route-leave-to {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

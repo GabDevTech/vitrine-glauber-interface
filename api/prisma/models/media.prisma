@@ -1,0 +1,35 @@
+enum MediaKind {
+  box_cover
+  box_owner_portrait
+  product_image
+}
+
+enum MediaStatus {
+  private
+  linked
+  removed
+}
+
+model Media {
+  id                   BigInt                 @id @default(autoincrement())
+  storageKey           String                 @unique @db.VarChar(255)
+  originalFilename     String                 @db.VarChar(255)
+  mimeType             String                 @db.VarChar(80)
+  sizeBytes            Int
+  width                Int
+  height               Int
+  kind                 MediaKind
+  status               MediaStatus            @default(private)
+  createdByUserId      BigInt?
+  deletedByUserId      BigInt?
+  createdAt            DateTime               @default(now()) @db.Timestamptz(3)
+  deletedAt            DateTime?              @db.Timestamptz(3)
+  createdBy            User?                  @relation("MediaCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  deletedBy            User?                  @relation("MediaDeleter", fields: [deletedByUserId], references: [id], onDelete: Restrict)
+  boxCoverRevisions    BoxRevision[]          @relation("BoxCover")
+  boxPortraitRevisions BoxRevision[]          @relation("BoxPortrait")
+  productRevisions     ProductRevisionMedia[]
+
+  @@index([status, createdAt])
+  @@map("media")
+}
